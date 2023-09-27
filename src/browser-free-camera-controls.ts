@@ -15,7 +15,7 @@ export class BrowserFreeCameraControls {
     }
 
     handleKeyDown = (event: KeyboardEvent): void => {
-        console.log("how many");
+        //console.log("how many");
         // Check the key value of the pressed key
         switch (event.key) {
             // pan
@@ -65,7 +65,7 @@ export class BrowserFreeCameraControls {
 
 
     public turnOnControls(): void {
-        console.log("turning on");
+        //console.log("turning on");
         document.addEventListener("keydown", this.handleKeyDown);
     }
 

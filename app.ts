@@ -9,6 +9,8 @@ import { RenderMode } from "./enums/render-mode.js";
 import { BrowserFreeCameraControls } from "./src/browser-free-camera-controls.js";
 import { BrowserMouseControls } from "./src/browser-mouse-controls.js";
 import { RGB } from "./src/rgb.js";
+import { Geometry } from "./src/geometry.js";
+import { Texture } from "./src/texture.js";
 
 (async () => {
   const screenWidth: number = 800;
@@ -21,7 +23,17 @@ import { RGB } from "./src/rgb.js";
   let scene: Scene = new Scene(light);
   let camControls : BrowserFreeCameraControls = new BrowserFreeCameraControls(cam);
 
-  const mesh: Model = await Model.loadFromObjectFile('ship.obj');
+
+  //const img = await Texture.load("penguin.jpg");
+  const img = await Texture.load("grass.png");
+  // const img = await Texture.load("kirby.png");
+
+
+
+  const mesh: Model = await Model.loadFromObjectFile('grass.obj', true);
+  //const mesh : Model = Geometry.cube();
+  mesh.texture = img;
+
   scene.addModel(mesh);
 
   mesh.translation = new Vec3(0, 0, 0);
@@ -33,7 +45,9 @@ import { RGB } from "./src/rgb.js";
     renderer.render(scene, cam);
   }
 
-  const intervalInMilliseconds = 30; // Replace with the desired interval in milliseconds
+  console.log(img);
+
+  const intervalInMilliseconds = 30;
 
   let start = new Date();
   let end = new Date();
@@ -45,7 +59,6 @@ import { RGB } from "./src/rgb.js";
     end = new Date();
   },
     intervalInMilliseconds);
-
 })();
 
 

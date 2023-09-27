@@ -1,0 +1,8 @@
+newmtl dice
+Ka 0.9098039 0.8784314 0.7843137
+Kd 0.5647059 0.5647059 0.5647059
+d 1
+Tr 1
+map_Ka dice.png
+map_Kd dice.png
+map_d dice.png
