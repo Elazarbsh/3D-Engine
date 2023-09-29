@@ -25,12 +25,12 @@ import { Texture } from "./src/texture.js";
 
 
   //const img = await Texture.load("penguin.jpg");
-  const img = await Texture.load("grass.png");
+  const img = await Texture.load("roll.png");
   // const img = await Texture.load("kirby.png");
 
 
 
-  const mesh: Model = await Model.loadFromObjectFile('grass.obj', true);
+  const mesh: Model = await Model.loadFromObjectFile('roll.obj', true);
   //const mesh : Model = Geometry.cube();
   mesh.texture = img;
 
@@ -41,7 +41,7 @@ import { Texture } from "./src/texture.js";
   let mouseControls : BrowserMouseControls = new BrowserMouseControls(mesh, cam, canvas);
 
   function animate(timeElapsed: number) {
-    clearScreen();
+    //clearScreen();
     renderer.render(scene, cam);
   }
 

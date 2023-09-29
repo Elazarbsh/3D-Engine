@@ -74,17 +74,17 @@ export class Model {
           // tri.uv2.y = Math.abs(tri.uv2.y);
           // tri.uv3.y = Math.abs(tri.uv3.y);
 
-          // if(tri.uv1.y < 0){
-          //   tri.uv1.y = 1 + tri.uv1.y;
-          // }
+          if(tri.uv1.y < 0){
+            tri.uv1.y = this.normalizeBetweenZeroAndOne(tri.uv1.y);
+          }
 
-          // if(tri.uv2.y < 0){
-          //   tri.uv2.y = 1 + tri.uv2.y;
-          // }
+          if(tri.uv2.y < 0){
+            tri.uv2.y = this.normalizeBetweenZeroAndOne(tri.uv2.y);
+          }
 
-          // if(tri.uv3.y < 0){
-          //   tri.uv3.y = 1 + tri.uv3.y;
-          // }
+          if(tri.uv3.y < 0){
+            tri.uv3.y = this.normalizeBetweenZeroAndOne(tri.uv3.y);
+          }
 
 
           // tri.uv1.y = this.normalizeBetweenZeroAndOne(tri.uv1.y);

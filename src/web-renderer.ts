@@ -17,6 +17,11 @@ export class Renderer {
     private _renderMode: RenderMode;
     private _canvas: HTMLCanvasElement;
     private _wireFramesColor: RGB;
+    private _rasterizer: TriangleRasterizer;
+    private _depthBuffer: number[];
+    private _imageData: ImageData;
+    private _canvasCtx: CanvasRenderingContext2D | null;
+
 
     constructor(screenWidth: number, screenHeight: number, renderMode: RenderMode = RenderMode.FILL, canvas: HTMLCanvasElement) {
         this._screenWidth = screenWidth;
@@ -24,6 +29,19 @@ export class Renderer {
         this._renderMode = renderMode;
         this._canvas = canvas;
         this._wireFramesColor = new RGB(255, 255, 255);
+
+        this._canvasCtx = canvas.getContext('2d');
+
+        if (this._canvasCtx == null)
+            throw new Error("null ctx");
+
+        this._imageData = this._canvasCtx.createImageData(canvas.width, canvas.height);
+
+        
+        this._depthBuffer = new Array(canvas.width * canvas.height).fill(0);
+
+        this._rasterizer = new TriangleRasterizer(this.canvas, this._imageData, this._depthBuffer);
+
     }
 
     public renderMesh(mesh: Model, scene: Scene, cam: Camera, mode: RenderMode) {
@@ -67,7 +85,7 @@ export class Renderer {
                     const lightIntensity = mode == RenderMode.WIREFRAMES ? 0 : scene.light.calculateLightIntensity(rotatedTri);
 
                     // to camera space
-                    const projectedTri: Tri = Tri.matrixMul(tri, projectionMatrix);                    
+                    const projectedTri: Tri = Tri.matrixMul(tri, projectionMatrix);
 
                     // depth normalization
                     const normalizedDepthTri = Tri.normalizeDepth(projectedTri);
@@ -115,9 +133,9 @@ export class Renderer {
         trisToRaster.sort(this.sortTriangles);
         trisToRaster = this.clip(trisToRaster);
         // this.draw(trisToRaster, mesh.color);
-        if(mesh.texture == null){
+        if (mesh.texture == null) {
             this.draw(trisToRaster, mesh.color);
-        }else{
+        } else {
             this.texturize(trisToRaster, mesh.texture)
         }
     }
@@ -134,7 +152,7 @@ export class Renderer {
         }
     }
 
-    private clip(trisToRaster: Tri[]) : Tri[]{
+    private clip(trisToRaster: Tri[]): Tri[] {
         const topScreenPlane = new Plane(new Vec3(0, 1, 0), new Vec3(0, 0, 0));
         const bottomScreenPlane = new Plane(new Vec3(0, -1, 0), new Vec3(0, this.screenHeight, 0)); // top
         const leftScreenPlane = new Plane(new Vec3(1, 0, 0), new Vec3(0, 0, 0));
@@ -173,20 +191,34 @@ export class Renderer {
         // console.log(`drawn triangles count : ${triCount}`);
     }
 
-    private rasterize(trisToRaster: Tri[], rgb: RGB){
-        const rasterizer = new TriangleRasterizer(this.canvas);
+    private rasterize(trisToRaster: Tri[], rgb: RGB) {
+        //const rasterizer = new TriangleRasterizer(this.canvas);
         let triCount = 0;
         for (const tri of trisToRaster) {
             // rasterizer.rasterizeTriangle(tri);
-            rasterizer.rasterizeTriangle2(tri.v1.x, tri.v1.y, tri.v2.x, tri.v2.y, tri.v3.x, tri.v3.y,);
+            this._rasterizer.rasterizeTriangle2(tri.v1.x, tri.v1.y, tri.v2.x, tri.v2.y, tri.v3.x, tri.v3.y,);
             triCount++;
         }
         // console.log(`drawn triangles count : ${triCount}`);
     }
 
-    private texturize(trisToRaster: Tri[], texture: ImageData){
-        const rasterizer = new TriangleRasterizer(this.canvas);
+    public clearImageData(imageData: ImageData) {
+        const dataSize = imageData.width * imageData.height * 4;
+        for (let i = 0; i < dataSize; i += 4) {
+            imageData.data[i] = 0;     // Red channel
+            imageData.data[i + 1] = 0; // Green channel
+            imageData.data[i + 2] = 0; // Blue channel
+            imageData.data[i + 3] = 255; // Alpha channel (255 is fully opaque)
+        }
+        this._depthBuffer.fill(0);
+    }
+
+
+    private texturize(trisToRaster: Tri[], texture: ImageData) {
+        //const rasterizer = new TriangleRasterizer(this.canvas);
         let triCount = 0;
+
+        this.clearImageData(this._imageData);
         //console.log("TRI TO TEXTURE: " + trisToRaster.length)
         for (const tri of trisToRaster) {
             // console.log("ROUND: " + triCount);
@@ -196,12 +228,12 @@ export class Renderer {
 
             // rasterizer.rasterizeTriangle(tri);
 
-            rasterizer.textureTriangle(
+            this._rasterizer.textureTriangle(
                 tri.v1.x, tri.v1.y, tri.uv1.x, tri.uv1.y, tri.uv1.w,
                 tri.v2.x, tri.v2.y, tri.uv2.x, tri.uv2.y, tri.uv2.w,
                 tri.v3.x, tri.v3.y, tri.uv3.x, tri.uv3.y, tri.uv3.w,
                 texture
-                );
+            );
             triCount++;
         }
         // console.log(`drawn triangles count : ${triCount}`);
