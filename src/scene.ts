@@ -1,5 +1,5 @@
 import { Light } from "./light";
-import { Model } from "./mesh";
+import { Model } from "./model";
 
 export class Scene{
 

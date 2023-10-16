@@ -1,6 +1,6 @@
-import { Model } from "./mesh.js";
+import { Model } from "./model.js";
 import { Tri } from "./tri.js";
-import { Vec2 } from "./vec2.js";
+import { Texel } from "./texel.js";
 import { Vec3 } from "./vec3.js";
 
 export class Geometry{
@@ -13,18 +13,18 @@ export class Geometry{
                 new Vec3(0.0, 1.0, 0.0),
                 new Vec3(1.0, 1.0, 0.0),
                 
-                new Vec2(0,1),
-                new Vec2(0,0),
-                new Vec2(1,0),
+                new Texel(0,1),
+                new Texel(0,0),
+                new Texel(1,0),
             ),
             new Tri(
                 new Vec3(0.0, 0.0, 0.0),
                 new Vec3(1.0, 1.0, 0.0),
                 new Vec3(1.0, 0.0, 0.0),
 
-                new Vec2(0,1),
-                new Vec2(1,0),
-                new Vec2(1,1),
+                new Texel(0,1),
+                new Texel(1,0),
+                new Texel(1,1),
             ),
         
             // EAST
@@ -33,18 +33,18 @@ export class Geometry{
                 new Vec3(1.0, 1.0, 0.0),
                 new Vec3(1.0, 1.0, 1.0),
 
-                new Vec2(0,1),
-                new Vec2(0,0),
-                new Vec2(1,0),
+                new Texel(0,1),
+                new Texel(0,0),
+                new Texel(1,0),
             ),
             new Tri(
                 new Vec3(1.0, 0.0, 0.0),
                 new Vec3(1.0, 1.0, 1.0),
                 new Vec3(1.0, 0.0, 1.0),
 
-                new Vec2(0,1),
-                new Vec2(1,0),
-                new Vec2(1,1),
+                new Texel(0,1),
+                new Texel(1,0),
+                new Texel(1,1),
             ),
         
             // NORTH
@@ -53,18 +53,18 @@ export class Geometry{
                 new Vec3(1.0, 1.0, 1.0),
                 new Vec3(0.0, 1.0, 1.0),
 
-                new Vec2(0,1),
-                new Vec2(0,0),
-                new Vec2(1,0),
+                new Texel(0,1),
+                new Texel(0,0),
+                new Texel(1,0),
             ),
             new Tri(
                 new Vec3(1.0, 0.0, 1.0),
                 new Vec3(0.0, 1.0, 1.0),
                 new Vec3(0.0, 0.0, 1.0),
 
-                new Vec2(0,1),
-                new Vec2(1,0),
-                new Vec2(1,1),
+                new Texel(0,1),
+                new Texel(1,0),
+                new Texel(1,1),
             ),
         
             // WEST
@@ -73,18 +73,18 @@ export class Geometry{
                 new Vec3(0.0, 1.0, 1.0),
                 new Vec3(0.0, 1.0, 0.0),
 
-                new Vec2(0,1),
-                new Vec2(0,0),
-                new Vec2(1,0),
+                new Texel(0,1),
+                new Texel(0,0),
+                new Texel(1,0),
             ),
             new Tri(
                 new Vec3(0.0, 0.0, 1.0),
                 new Vec3(0.0, 1.0, 0.0),
                 new Vec3(0.0, 0.0, 0.0),
 
-                new Vec2(0,1),
-                new Vec2(1,0),
-                new Vec2(1,1),
+                new Texel(0,1),
+                new Texel(1,0),
+                new Texel(1,1),
             ),
         
             // TOP
@@ -93,18 +93,18 @@ export class Geometry{
                 new Vec3(0.0, 1.0, 1.0),
                 new Vec3(1.0, 1.0, 1.0),
 
-                new Vec2(0,1),
-                new Vec2(0,0),
-                new Vec2(1,0),
+                new Texel(0,1),
+                new Texel(0,0),
+                new Texel(1,0),
             ),
             new Tri(
                 new Vec3(0.0, 1.0, 0.0),
                 new Vec3(1.0, 1.0, 1.0),
                 new Vec3(1.0, 1.0, 0.0),
 
-                new Vec2(0,1),
-                new Vec2(1,0),
-                new Vec2(1,1),
+                new Texel(0,1),
+                new Texel(1,0),
+                new Texel(1,1),
             ),
         
             // BOTTOM
@@ -113,18 +113,18 @@ export class Geometry{
                 new Vec3(0.0, 0.0, 1.0),
                 new Vec3(0.0, 0.0, 0.0),
 
-                new Vec2(0,1),
-                new Vec2(0,0),
-                new Vec2(1,0),
+                new Texel(0,1),
+                new Texel(0,0),
+                new Texel(1,0),
             ),
             new Tri(
                 new Vec3(1.0, 0.0, 1.0),
                 new Vec3(0.0, 0.0, 0.0),
                 new Vec3(1.0, 0.0, 0.0),
 
-                new Vec2(0,1),
-                new Vec2(1,0),
-                new Vec2(1,1),
+                new Texel(0,1),
+                new Texel(1,0),
+                new Texel(1,1),
             )
         ]);
     }

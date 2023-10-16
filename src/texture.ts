@@ -1,5 +1,33 @@
+import { RGBA } from "./rgba.js";
 
 export class Texture{
+
+    private _textureData: ImageData;
+
+    constructor(textureData : ImageData){
+        this._textureData = textureData;
+    }
+
+    public static async loadTextureFromImage(imgPath : string){
+        const textureData = await Texture.load(imgPath);
+        return new Texture(textureData);
+    }
+
+    public sampleColorAtUV(u: number, v: number): RGBA{
+        const x = Math.floor(u * (this.textureData.width - 1));
+        const y = Math.floor((1 - v) * (this.textureData.height - 1));
+        return this.sampleColorAt(x, y);
+    }
+
+    public sampleColorAt(x: number, y: number): RGBA {
+        const index = (y * this.textureData.width + x) * 4;
+        return new RGBA(
+            this.textureData.data[index],
+            this.textureData.data[index + 1],
+            this.textureData.data[index + 2],
+            this.textureData.data[index + 3]
+            );
+    }
 
     public static async load(imgPath: string): Promise<ImageData> {
         // Assuming you have an Image element called 'image' that has been loaded
@@ -33,5 +61,12 @@ export class Texture{
             img.onload = () => resolve(img);
             img.src = url;
         });
+    }
+
+    public get textureData(): ImageData {
+        return this._textureData;
+    }
+    public set textureData(value: ImageData) {
+        this._textureData = value;
     }
 }

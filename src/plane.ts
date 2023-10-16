@@ -10,7 +10,6 @@ export class Plane{
         this._point = point;
     }
     
-
     static linePlaneIntersect(plane : Plane, lineStart: Vec3, lineEnd: Vec3): Vec3 {
         const t = this.getNormalizedIntersectionDistance(plane, lineStart, lineEnd);
         const lineStartToEnd = Vec3.sub(lineEnd, lineStart);

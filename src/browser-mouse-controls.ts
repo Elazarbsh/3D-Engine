@@ -1,5 +1,5 @@
 import { Camera } from "./camera";
-import { Model } from "./mesh";
+import { Model } from "./model";
 
 
 export class BrowserMouseControls {

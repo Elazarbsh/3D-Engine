@@ -1,10 +1,12 @@
-import { RenderMode } from "../enums/render-mode.js";
 import { Camera } from "./camera.js";
 import { Mat4x4 } from "./mat4x4.js";
-import { Model } from "./mesh.js";
+import { Material } from "./material.js";
+import { Model } from "./model.js";
 import { Plane } from "./plane.js";
-import { RGB } from "./rgb.js";
+import { RGBA } from "./rgba.js";
 import { Scene } from "./scene.js";
+import { Texel } from "./texel.js";
+import { Texture } from "./texture.js";
 import { Tri } from "./tri.js";
 import { TriangleClipper } from "./triangle-clipper.js";
 import { TriangleRasterizer } from "./triangle-rasterizer.js";
@@ -14,75 +16,57 @@ export class Renderer {
 
     private _screenWidth: number;
     private _screenHeight: number;
-    private _renderMode: RenderMode;
     private _canvas: HTMLCanvasElement;
-    private _wireFramesColor: RGB;
     private _rasterizer: TriangleRasterizer;
     private _depthBuffer: number[];
     private _imageData: ImageData;
     private _canvasCtx: CanvasRenderingContext2D | null;
 
-
-    constructor(screenWidth: number, screenHeight: number, renderMode: RenderMode = RenderMode.FILL, canvas: HTMLCanvasElement) {
-        this._screenWidth = screenWidth;
-        this._screenHeight = screenHeight;
-        this._renderMode = renderMode;
+    constructor(canvas: HTMLCanvasElement) {
+        this._screenWidth = canvas.width;
+        this._screenHeight = canvas.height;
         this._canvas = canvas;
-        this._wireFramesColor = new RGB(255, 255, 255);
-
         this._canvasCtx = canvas.getContext('2d');
 
         if (this._canvasCtx == null)
             throw new Error("null ctx");
 
         this._imageData = this._canvasCtx.createImageData(canvas.width, canvas.height);
-
-        
         this._depthBuffer = new Array(canvas.width * canvas.height).fill(0);
-
-        this._rasterizer = new TriangleRasterizer(this.canvas, this._imageData, this._depthBuffer);
-
+        this._rasterizer = new TriangleRasterizer(this._imageData, this._depthBuffer);
     }
 
-    public renderMesh(mesh: Model, scene: Scene, cam: Camera, mode: RenderMode) {
+    public render(scene: Scene, camera: Camera) : void{
+        for (const model of scene.models) {
+            this.renderMesh(model, scene, camera);
+        }
+    }
 
+    private renderMesh(mesh: Model, scene: Scene, cam: Camera) : void{
         const translationMatrix: Mat4x4 = Mat4x4.getTranslationMatrix(mesh.translation);
         const cameraMatrix: Mat4x4 = cam.cameraMatrix();
         const projectionMatrix: Mat4x4 = Mat4x4.getProjectionMatrix(90, 1, 0.1, 100);
-        const rotationMatrixY: Mat4x4 = Mat4x4.getYaxisRotationMatrix(mesh.rotation.y);
-        const rotationMatrixX: Mat4x4 = Mat4x4.getXaxisRotationMatrix(mesh.rotation.x);
-        const rotationMatrixZ: Mat4x4 = Mat4x4.getZaxisRotationMatrix(mesh.rotation.z);
+        const rotationMatrix = Mat4x4.multiply(
+            Mat4x4.getZaxisRotationMatrix(mesh.rotation.z), 
+            Mat4x4.multiply(Mat4x4.getYaxisRotationMatrix(mesh.rotation.y), Mat4x4.getXaxisRotationMatrix(mesh.rotation.x)));
 
         let trisToRaster: Tri[] = [];
 
         for (const tri of mesh.tris) {
-            const roationYX = Mat4x4.multiply(rotationMatrixX, rotationMatrixY);
-            const rotationYXZ = Mat4x4.multiply(rotationMatrixZ, roationYX);
-            const rotatedTri = Tri.matrixMul(tri, rotationYXZ);
+            const rotatedTri = Tri.matrixMul(tri, rotationMatrix);
             const translatedTri = Tri.matrixMul(rotatedTri, translationMatrix)
             const camViewTri: Tri = Tri.matrixMul(translatedTri, cameraMatrix);
 
-            const originalUV1 = tri.uv1;
-            const originalUV2 = tri.uv2;
-            const originalUV3 = tri.uv3;
-
-
             if (cam.isVisibleTri(camViewTri)) {
-                const clipPlane: Plane = new Plane(new Vec3(0, 0, 0.001), new Vec3(0, 0, 0.001));
-
-                camViewTri.uv1 = originalUV1;
-                camViewTri.uv2 = originalUV2;
-                camViewTri.uv3 = originalUV3;
-
-                const clipedTris: Tri[] = TriangleClipper.clipAgainstPlane(clipPlane, camViewTri);
+                const clipedTris: Tri[] = TriangleClipper.clipAgainstPlane(
+                    new Plane(new Vec3(0, 0, 0.001), new Vec3(0, 0, 0.001)),
+                    camViewTri
+                );
 
                 for (const tri of clipedTris) {
 
-                    const clippedUV1 = tri.uv1;
-                    const clippedUV2 = tri.uv2;
-                    const clippedUV3 = tri.uv3;
                     // calcualte light intensity
-                    const lightIntensity = mode == RenderMode.WIREFRAMES ? 0 : scene.light.calculateLightIntensity(rotatedTri);
+                    tri.surfaceLightIntensity = scene.light.calculateLightIntensity(rotatedTri);
 
                     // to camera space
                     const projectedTri: Tri = Tri.matrixMul(tri, projectionMatrix);
@@ -93,50 +77,22 @@ export class Renderer {
                     // to screen space
                     const screenTri = Tri.toScreenSpace(normalizedDepthTri, this.screenWidth, this.screenHeight);
 
-                    // console.log(`copying uv coordinates: (${originalUV1.x},${originalUV1.y}),  (${originalUV2.x},${originalUV2.y}) , (${originalUV3.x}, ${originalUV3.y} )`);
-
-                    screenTri.uv1 = clippedUV1;
-                    screenTri.uv2 = clippedUV2;
-                    screenTri.uv3 = clippedUV3;
-
-                    //console.log(`the Xs are : ${screenTri.uv1.x}, ${screenTri.uv2.x}, ${screenTri.uv3.x}`);
-                    //console.log(`the Ys are : ${screenTri.uv1.y}, ${screenTri.uv2.y}, ${screenTri.uv3.y}`);
-
                     // prepare texels projection
-                    screenTri.uv1.x = screenTri.uv1.x / projectedTri.v1.w;
-                    screenTri.uv2.x = screenTri.uv2.x / projectedTri.v2.w;
-                    screenTri.uv3.x = screenTri.uv3.x / projectedTri.v3.w;
-
-                    screenTri.uv1.y = screenTri.uv1.y / projectedTri.v1.w;
-                    screenTri.uv2.y = screenTri.uv2.y / projectedTri.v2.w;
-                    screenTri.uv3.y = screenTri.uv3.y / projectedTri.v3.w;
-
-                    screenTri.uv1.w = 1 / projectedTri.v1.w;
-                    screenTri.uv2.w = 1 / projectedTri.v2.w;
-                    screenTri.uv3.w = 1 / projectedTri.v3.w;
-
-                    screenTri.surfaceLightIntensity = lightIntensity;
-
-
-                    // console.log(`the Ws are : ${projectedTri.v1.w}, ${projectedTri.v2.w}, ${projectedTri.v3.w}`);
-                    // console.log(`the divided Ws are : ${screenTri.uv1.w}, ${screenTri.uv2.w}, ${screenTri.uv3.w}`);
-                    // console.log(`the Xs are : ${screenTri.uv1.x}, ${screenTri.uv2.x}, ${screenTri.uv3.x}`);
-                    // console.log(`the Ys are : ${screenTri.uv1.y}, ${screenTri.uv2.y}, ${screenTri.uv3.y}`);
-
-
+                    screenTri.texel1 = Texel.div(screenTri.texel1, projectedTri.v1.w);
+                    screenTri.texel2 = Texel.div(screenTri.texel2, projectedTri.v2.w);
+                    screenTri.texel3 = Texel.div(screenTri.texel3, projectedTri.v3.w);
 
                     trisToRaster.push(screenTri);
                 }
             }
         }
 
-        trisToRaster.sort(this.sortTriangles);
-        trisToRaster = this.clip(trisToRaster);
-        // this.draw(trisToRaster, mesh.color);
-        if (mesh.texture == null) {
-            this.draw(trisToRaster, mesh.color);
+        const clippedTris = this.clipScreenSpace(trisToRaster);
+
+        if (mesh.material.texture === null) {
+            this.draw(clippedTris.sort(this.sortTriangles), mesh.material);
         } else {
-            this.texturize(trisToRaster, mesh.texture)
+            this.texturize(clippedTris, mesh.material.color, mesh.material.texture);
         }
     }
 
@@ -146,13 +102,7 @@ export class Renderer {
         return z2 - z1;
     }
 
-    public render(scene: Scene, camera: Camera) {
-        for (const model of scene.models) {
-            this.renderMesh(model, scene, camera, this.renderMode);
-        }
-    }
-
-    private clip(trisToRaster: Tri[]): Tri[] {
+    private clipScreenSpace(trisToRaster: Tri[]): Tri[] {
         const topScreenPlane = new Plane(new Vec3(0, 1, 0), new Vec3(0, 0, 0));
         const bottomScreenPlane = new Plane(new Vec3(0, -1, 0), new Vec3(0, this.screenHeight, 0)); // top
         const leftScreenPlane = new Plane(new Vec3(1, 0, 0), new Vec3(0, 0, 0));
@@ -182,97 +132,43 @@ export class Renderer {
         return res;
     }
 
-    private draw(trisToRaster: Tri[], rgb: RGB) {
-        let triCount = 0;
-        for (const tri of trisToRaster) {
-            this.drawTriangle(tri, rgb);
-            triCount++;
-        }
-        // console.log(`drawn triangles count : ${triCount}`);
-    }
-
-    private rasterize(trisToRaster: Tri[], rgb: RGB) {
-        //const rasterizer = new TriangleRasterizer(this.canvas);
-        let triCount = 0;
-        for (const tri of trisToRaster) {
-            // rasterizer.rasterizeTriangle(tri);
-            this._rasterizer.rasterizeTriangle2(tri.v1.x, tri.v1.y, tri.v2.x, tri.v2.y, tri.v3.x, tri.v3.y,);
-            triCount++;
-        }
-        // console.log(`drawn triangles count : ${triCount}`);
-    }
-
-    public clearImageData(imageData: ImageData) {
+    private clearImageData(imageData: ImageData) : void{
         const dataSize = imageData.width * imageData.height * 4;
         for (let i = 0; i < dataSize; i += 4) {
-            imageData.data[i] = 0;     // Red channel
-            imageData.data[i + 1] = 0; // Green channel
-            imageData.data[i + 2] = 0; // Blue channel
-            imageData.data[i + 3] = 255; // Alpha channel (255 is fully opaque)
+            imageData.data[i] = 0;
+            imageData.data[i + 1] = 0;
+            imageData.data[i + 2] = 0;
+            imageData.data[i + 3] = 255;
         }
-        this._depthBuffer.fill(0);
+        this.clearDepthBuffer();
     }
 
-
-    private texturize(trisToRaster: Tri[], texture: ImageData) {
-        //const rasterizer = new TriangleRasterizer(this.canvas);
-        let triCount = 0;
-
+    private texturize(trisToRaster: Tri[], color : RGBA ,texture: Texture) {
         this.clearImageData(this._imageData);
-        //console.log("TRI TO TEXTURE: " + trisToRaster.length)
         for (const tri of trisToRaster) {
-            // console.log("ROUND: " + triCount);
-            // console.log(`calling texturize with uv w values: (${tri.uv1.w}, ${tri.uv2.w}, ${tri.uv3.w}`);
-            // console.log(`calling texturize with uv x values: (${tri.uv1.x}, ${tri.uv2.x}, ${tri.uv3.x}`);
-            // console.log(`calling texturize with uv y values: (${tri.uv1.y}, ${tri.uv2.y}, ${tri.uv3.y}`);
-
-            // rasterizer.rasterizeTriangle(tri);
-
-            this._rasterizer.textureTriangle(
-                tri.v1.x, tri.v1.y, tri.uv1.x, tri.uv1.y, tri.uv1.w,
-                tri.v2.x, tri.v2.y, tri.uv2.x, tri.uv2.y, tri.uv2.w,
-                tri.v3.x, tri.v3.y, tri.uv3.x, tri.uv3.y, tri.uv3.w,
-                texture
-            );
-            triCount++;
+            this._rasterizer.textureTriangle(this.canvas, tri,texture, color);
         }
-        // console.log(`drawn triangles count : ${triCount}`);
+        this.swapBuffer();
     }
 
-    private drawTriangle(tri: Tri, rgb: RGB) {
-        const ctx = this.canvas.getContext("2d");
-
-        if (ctx === null)
-            throw new Error("an error occured while drawing");
-
-        if (this.renderMode == RenderMode.WIREFRAMES || this.renderMode == RenderMode.WIREFRAMESFILL) {
-            const strokeRed = this.wireFramesColor.red;
-            const strokeGreen = this.wireFramesColor.green;
-            const strokeBlue = this.wireFramesColor.blue;
-            ctx.strokeStyle = `rgb(${strokeRed}, ${strokeGreen}, ${strokeBlue})`;
-            ctx.lineWidth = 2;
+    private draw(trisToRaster: Tri[], material : Material) {
+        this.clearScreen();
+        for (const tri of trisToRaster) {
+            this._rasterizer.fillTriangle(this.canvas, tri, material);
         }
+    }
 
-        if (this.renderMode == RenderMode.FILL || this.renderMode == RenderMode.WIREFRAMESFILL) {
-            const fillRed = rgb.red * tri.surfaceLightIntensity;
-            const fillGreen = rgb.green * tri.surfaceLightIntensity;
-            const fillBlue = rgb.blue * tri.surfaceLightIntensity;
-            ctx.fillStyle = `rgb(${fillRed}, ${fillGreen}, ${fillBlue})`;
-        }
+    private clearScreen() : void{
+        this._canvasCtx!.fillStyle = 'black';
+        this._canvasCtx!.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
 
-        ctx.beginPath();
-        ctx.moveTo(tri.v1.x, tri.v1.y);
-        ctx.lineTo(tri.v2.x, tri.v2.y);
-        ctx.lineTo(tri.v3.x, tri.v3.y);
-        ctx.closePath();
+    private swapBuffer() : void {
+        this._canvasCtx!.putImageData(this._imageData, 0, 0);
+    }
 
-        if ((this.renderMode == RenderMode.WIREFRAMES || this.renderMode == RenderMode.WIREFRAMESFILL)) {
-            ctx.stroke();
-        }
-
-        if (this.renderMode == RenderMode.FILL || this.renderMode == RenderMode.WIREFRAMESFILL) {
-            ctx.fill();
-        }
+    private clearDepthBuffer() : void{
+        this._depthBuffer.fill(0);
     }
 
     public get canvas(): HTMLCanvasElement {
@@ -281,7 +177,6 @@ export class Renderer {
     public set canvas(value: HTMLCanvasElement) {
         this._canvas = value;
     }
-
     public get screenWidth(): number {
         return this._screenWidth;
     }
@@ -293,17 +188,5 @@ export class Renderer {
     }
     public set screenHeight(value: number) {
         this._screenHeight = value;
-    }
-    public get renderMode(): RenderMode {
-        return this._renderMode;
-    }
-    public set renderMode(value: RenderMode) {
-        this._renderMode = value;
-    }
-    public get wireFramesColor(): RGB {
-        return this._wireFramesColor;
-    }
-    public set wireFramesColor(value: RGB) {
-        this._wireFramesColor = value;
     }
 }

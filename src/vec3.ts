@@ -68,6 +68,10 @@ export class Vec3 {
         return new Vec3(-vec.x, -vec.y, -vec.z);
     }
 
+    public copy(){
+        return new Vec3(this.x, this.y, this.z);
+    }
+
     public get x(): number {
         return this._x;
     }

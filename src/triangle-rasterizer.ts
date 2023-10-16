@@ -1,207 +1,74 @@
-import { RGB } from "./rgb.js";
+import { Material } from "./material.js";
+import { RGBA } from "./rgba.js";
+import { Texture } from "./texture.js";
 import { Tri } from "./tri.js";
-import { Vec3 } from "./vec3.js";
 
 export class TriangleRasterizer {
 
-    private _canvas: HTMLCanvasElement;
-    private _context: CanvasRenderingContext2D | null;
     private _depthBuffer: number[];
     private _imageData: ImageData
 
-
-
-    constructor(canvas: HTMLCanvasElement, imageData : ImageData, depthBuffer : number[]) {
-        this._canvas = canvas;
-        this._context = this.canvas.getContext('2d');
-        if (this._context == null)
-            throw new Error("null ctx");
-
+    constructor(imageData: ImageData, depthBuffer: number[]) {
         this._imageData = imageData;
         this._depthBuffer = depthBuffer;
-
     }
 
-    public rasterizeTriangle(tri: Tri) {
-        const minX = Math.min(tri.v1.x, tri.v2.x, tri.v3.x);
-        const minY = Math.min(tri.v1.y, tri.v2.y, tri.v3.y);
-        const maxX = Math.max(tri.v1.x, tri.v2.x, tri.v3.x);
-        const maxY = Math.max(tri.v1.y, tri.v2.y, tri.v3.y);
-
-        // Iterate over bounding box
-        for (let x = minX; x <= maxX; x++) {
-            for (let y = minY; y <= maxY; y++) {
-                const p = new Vec3(x, y, 0);
-                if (Tri.isPointInTriangle(p, tri.v1, tri.v2, tri.v3)) {
-                    this.drawPixel(p.x, p.y, new RGB(0, 255, 0));
-                }
-            }
-        }
-    }
-
-
-
-    public drawPixel(x: number, y: number, color: RGB) {
-        this._context!.fillStyle = `rgb(${color.red}, ${color.green}, ${color.blue})`;
-        this._context!.fillRect(x, y, 1, 1);
-    }
-
-    public setPixel(imageData: ImageData, x: number, y: number, color: RGB, alpha: number) {
-        imageData.data[0] = color.red;
-        imageData.data[1] = color.green;
-        imageData.data[2] = color.blue;
-        imageData.data[3] = alpha;
-        this._context!.putImageData(imageData, x, y);
-    }
-
-    public drawPixel2(x: number, y: number, color: RGB, alpha: number) {
+    private drawPixel(canvas : HTMLCanvasElement,x: number, y: number, color: RGBA, alpha: number) {
         var roundedX = Math.round(x);
         var roundedY = Math.round(y);
-        var index = 4 * (this.canvas.width * roundedY + roundedX);
+        var index = 4 * (canvas.width * roundedY + roundedX);
         this._imageData.data[index + 0] = color.red;
         this._imageData.data[index + 1] = color.green;
         this._imageData.data[index + 2] = color.blue;
         this._imageData.data[index + 3] = alpha;
     }
 
-    public blackenBackground() {
-        for (let i = 0; i < this._imageData.data.length; i += 4) {
-            this._imageData.data[i] = 0;     // Red channel
-            this._imageData.data[i + 1] = 0; // Green channel
-            this._imageData.data[i + 2] = 0; // Blue channel
-            this._imageData.data[i + 3] = 255; // Alpha channel (255 is fully opaque)
-        }
-        this._context!.putImageData(this._imageData, 0, 0);
-    }
+    public fillTriangle(canvas : HTMLCanvasElement, tri : Tri, material : Material) {
+        const ctx = canvas.getContext("2d");
 
-    public swapBuffer() {
-        //this.blackenBackground();
-        this._context!.putImageData(this._imageData, 0, 0);
-        // this._depthBuffer = new Array(this._canvas.width * this._canvas.height).fill(0);
-    }
+        if (ctx === null)
+            throw new Error("an error occured while drawing");
 
-    public get canvas(): HTMLCanvasElement {
-        return this._canvas;
-    }
-    public set canvas(value: HTMLCanvasElement) {
-        this._canvas = value;
-    }
-
-    public rasterizeTriangle2(
-        x1: number, y1: number,
-        x2: number, y2: number,
-        x3: number, y3: number
-    ) {
-        if (y2 < y1) {
-            [y1, y2] = [y2, y1];
-            [x1, x2] = [x2, x1];
+        if (material.wireframe == true) {
+            ctx.strokeStyle = `rgb(${material.wireframeColor.red}, ${material.wireframeColor.green}, ${material.wireframeColor.blue})`;
+            ctx.lineWidth = material.wireframeWidth;
         }
 
-        if (y3 < y1) {
-            [y1, y3] = [y3, y1];
-            [x1, x3] = [x3, x1];
+        const fillIntensity = tri.surfaceLightIntensity;
+        ctx.fillStyle = `rgb(${material.color.red * fillIntensity}, ${material.color.green * fillIntensity}, ${material.color.blue * fillIntensity})`;
+
+        ctx.beginPath();
+        ctx.moveTo(tri.v1.x, tri.v1.y);
+        ctx.lineTo(tri.v2.x, tri.v2.y);
+        ctx.lineTo(tri.v3.x, tri.v3.y);
+        ctx.closePath();
+        if (material.wireframe) {
+            ctx.stroke();
         }
-
-        if (y3 < y2) {
-            [y2, y3] = [y3, y2];
-            [x2, x3] = [x3, x2];
-        }
-
-        let dy1 = y2 - y1;
-        let dx1 = x2 - x1;
-
-        let dy2 = y3 - y1;
-        let dx2 = x3 - x1;
-
-        let dax_step = 0, dbx_step = 0,
-            du1_step = 0, dv1_step = 0;
-
-        if (dy1) dax_step = dx1 / Math.abs(dy1);
-        if (dy2) dbx_step = dx2 / Math.abs(dy2);
-
-        if (dy1) {
-            for (let i = y1; i <= y2; i++) {
-                let ax = x1 + (i - y1) * dax_step;
-                let bx = x1 + (i - y1) * dbx_step;
-
-                if (ax > bx) {
-                    [ax, bx] = [bx, ax];
-                }
-
-                const tstep = 1.0 / (bx - ax);
-                let t = 0.0;
-
-                for (let j = ax; j < bx; j++) {
-                    // Assuming you have Draw and pDepthBuffer functions
-                    // Draw(j, i, tex.SampleGlyph(tex_u / tex_w, tex_v / tex_w), tex.SampleColour(tex_u / tex_w, tex_v / tex_w));
-                    // pDepthBuffer[i * ScreenWidth() + j] = tex_w;
-                    //this.drawPixel(j,i,new RGB(255,255,255));
-                    this.drawPixel2(j, i, new RGB(0, 200, 200), 255);
-
-                    t += tstep;
-                }
-            }
-        }
-
-        dy1 = y3 - y2;
-        dx1 = x3 - x2;
-
-        if (dy1) dax_step = dx1 / Math.abs(dy1);
-        if (dy2) dbx_step = dx2 / Math.abs(dy2);
-
-        du1_step = 0, dv1_step = 0;
-
-        if (dy1) {
-            for (let i = y2; i <= y3; i++) {
-                let ax = x2 + (i - y2) * dax_step;
-                let bx = x1 + (i - y1) * dbx_step;
-
-                if (ax > bx) {
-                    [ax, bx] = [bx, ax];
-                }
-
-                const tstep = 1.0 / (bx - ax);
-                let t = 0.0;
-
-                for (let j = ax; j < bx; j++) {
-
-                    // Assuming you have Draw and pDepthBuffer functions
-                    // Draw(j, i, tex.SampleGlyph(tex_u / tex_w, tex_v / tex_w), tex.SampleColour(tex_u / tex_w, tex_v / tex_w));
-                    // pDepthBuffer[i * ScreenWidth() + j] = tex_w;
-                    //this.drawPixel(j,i,new RGB(255,255,255));
-                    this.drawPixel2(j, i, new RGB(0, 200, 200), 255);
-                    t += tstep;
-                }
-            }
-        }
-        this.swapBuffer();
+        ctx.fill();
     }
 
+    public textureTriangle(canvas : HTMLCanvasElement, tri: Tri, tex: Texture, materialColor: RGBA) {
+        let x1: number = tri.v1.x;
+        let x2: number = tri.v2.x;
+        let x3: number = tri.v3.x;
 
-    ///////////////////
+        let y1: number = tri.v1.y;
+        let y2: number = tri.v2.y;
+        let y3: number = tri.v3.y;
 
-    public sampleColor(imageData: ImageData, u: number, v: number): Uint8ClampedArray {
-        const x = Math.floor(u * (imageData.width - 1));
-        const y = Math.floor((1 - v) * (imageData.height - 1));
+        let u1: number = tri.texel1.u;
+        let u2: number = tri.texel2.u;
+        let u3: number = tri.texel3.u;
 
-        // console.log(`getting color at uv = (${x}, ${y})`);
+        let v1: number = tri.texel1.v;
+        let v2: number = tri.texel2.v;
+        let v3: number = tri.texel3.v;
 
-        const index = (y * imageData.width + x) * 4;
+        let w1: number = tri.texel1.w;
+        let w2: number = tri.texel2.w;
+        let w3: number = tri.texel3.w;
 
-        return new Uint8ClampedArray([
-            imageData.data[index],
-            imageData.data[index + 1],
-            imageData.data[index + 2],
-            imageData.data[index + 3]
-        ]);
-    }
-
-    public textureTriangle(
-        x1: number, y1: number, u1: number, v1: number, w1: number,
-        x2: number, y2: number, u2: number, v2: number, w2: number,
-        x3: number, y3: number, u3: number, v3: number, w3: number,
-        tex: ImageData
-    ) {
         if (y2 < y1) {
             [y1, y2] = [y2, y1];
             [x1, x2] = [x2, x1];
@@ -288,29 +155,21 @@ export class TriangleRasterizer {
                     tex_v = (1.0 - t) * tex_sv + t * tex_ev;
                     tex_w = (1.0 - t) * tex_sw + t * tex_ew;
 
+                    const color = tex.sampleColorAtUV(tex_u / tex_w, tex_v / tex_w);
+                    const red: number = color.red * (materialColor.red / 255) * tri.surfaceLightIntensity;
+                    const green: number = color.green * (materialColor.green / 255) * tri.surfaceLightIntensity;
+                    const blue: number = color.blue * (materialColor.blue / 255) * tri.surfaceLightIntensity;
 
-                    // Assuming you have Draw and pDepthBuffer functions
-                    // Draw(j, i, tex.SampleGlyph(tex_u / tex_w, tex_v / tex_w), tex.SampleColour(tex_u / tex_w, tex_v / tex_w));
-                    // pDepthBuffer[i * ScreenWidth() + j] = tex_w;
-                    const sampledColor = this.sampleColor(tex, tex_u / tex_w, tex_v / tex_w);
-                    const red = sampledColor[0];
-                    const green = sampledColor[1];
-                    const blue = sampledColor[2];
-                    const alpha = sampledColor[3];
-                    //console.log(`drawing pixel: (${red}, ${green}, ${blue}, ${alpha}) at (${j}, ${i})`);
-                    var index = Math.floor(i * this.canvas.width + j);
-                    //console.log(`${tex_w}, ${this._depthBuffer.length}, ${i * this.canvas.width + j} ,${this._depthBuffer[index]}`);
+                    var index = Math.floor(i * canvas.width + j);
 
                     if (tex_w > this._depthBuffer[index]) {
-                        this.drawPixel2(j, i, new RGB(red, green, blue), alpha);
-                        this._depthBuffer[i * this.canvas.width + j] = tex_w;
+                        this.drawPixel(canvas, j, i, new RGBA(red, green, blue), color.alpha);
+                        this._depthBuffer[i * canvas.width + j] = tex_w;
                     }
                     t += tstep;
                 }
             }
         }
-
-        // console.log("BOTTOM TRI");
 
         dy1 = y3 - y2;
         dx1 = x3 - x2;
@@ -358,86 +217,20 @@ export class TriangleRasterizer {
                     tex_v = (1.0 - t) * tex_sv + t * tex_ev;
                     tex_w = (1.0 - t) * tex_sw + t * tex_ew;
 
-                    // Assuming you have Draw and pDepthBuffer functions
-                    // Draw(j, i, tex.SampleGlyph(tex_u / tex_w, tex_v / tex_w), tex.SampleColour(tex_u / tex_w, tex_v / tex_w));
-                    // pDepthBuffer[i * ScreenWidth() + j] = tex_w;
-                    const sampledColor = this.sampleColor(tex, tex_u / tex_w, tex_v / tex_w);
-                    const red = sampledColor[0];
-                    const green = sampledColor[1];
-                    const blue = sampledColor[2];
-                    const alpha = sampledColor[3];
-                    //console.log(`drawing pixel: (${red}, ${green}, ${blue}, ${alpha}) at (${j}, ${i})`);
-                    var index = Math.floor(i * this.canvas.width + j);
+                    const color = tex.sampleColorAtUV(tex_u / tex_w, tex_v / tex_w);
+                    const red: number = color.red * (materialColor.red / 255) * tri.surfaceLightIntensity;
+                    const green: number = color.green * (materialColor.green / 255) * tri.surfaceLightIntensity;
+                    const blue: number = color.blue * (materialColor.blue / 255) * tri.surfaceLightIntensity;
+
+                    var index = Math.floor(i * canvas.width + j);
+
                     if (tex_w > this._depthBuffer[index]) {
-                        this.drawPixel2(j, i, new RGB(red, green, blue), alpha);
-                        this._depthBuffer[i * this.canvas.width + j] = tex_w;
+                        this.drawPixel(canvas, j, i, new RGBA(red, green, blue), color.alpha);
+                        this._depthBuffer[i * canvas.width + j] = tex_w;
                     }
                     t += tstep;
                 }
             }
         }
-        this.swapBuffer();
     }
-
-
-    ////////////////////////////////////////////////////////////
-
-
-    public gptTextureTriangle(
-        x1: number, y1: number, u1: number, v1: number, w1: number,
-        x2: number, y2: number, u2: number, v2: number, w2: number,
-        x3: number, y3: number, u3: number, v3: number, w3: number,
-        tex: ImageData
-    ) {
-        const minY = Math.min(y1, y2, y3);
-        const maxY = Math.max(y1, y2, y3);
-        const minX = Math.min(x1, x2, x3);
-        const maxX = Math.max(x1, x2, x3);
-
-        for (let y = minY; y <= maxY; y++) {
-            for (let x = minX; x <= maxX; x++) {
-                const b1 = this.sign(x2, y2, x3, y3, x, y) < 0.0;
-                const b2 = this.sign(x3, y3, x1, y1, x, y) < 0.0;
-                const b3 = this.sign(x1, y1, x2, y2, x, y) < 0.0;
-
-                if ((b1 === b2) && (b2 === b3)) {
-                    const w1s = this.sign(x2, y2, x3, y3, x, y);
-                    const w2s = this.sign(x3, y3, x1, y1, x, y);
-                    const w3s = this.sign(x1, y1, x2, y2, x, y);
-
-                    const totalW = w1 * w1s + w2 * w2s + w3 * w3s;
-
-                    const ws1 = w1 * w1s / totalW;
-                    const ws2 = w2 * w2s / totalW;
-                    const ws3 = w3 * w3s / totalW;
-
-                    const u = (u1 * ws1 + u2 * ws2 + u3 * ws3) / totalW;
-                    const v = (v1 * ws1 + v2 * ws2 + v3 * ws3) / totalW;
-
-                    const texel = this.sampleTexture(tex, u, v);
-                    this.drawPixel2(x, y, new RGB(texel.r, texel.g, texel.b), texel.a);
-                }
-            }
-        }
-        this.swapBuffer();
-    }
-
-    public sign(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): number {
-        return (x1 - x3) * (y2 - y3) - (x2 - x3) * (y1 - y3);
-    }
-
-    public sampleTexture(tex: ImageData, u: number, v: number): { r: number, g: number, b: number, a: number, } {
-        const x = Math.floor(u * (tex.width - 1));
-        const y = Math.floor(v * (tex.height - 1));
-        const index = (y * tex.width + x) * 4;
-        return {
-            r: tex.data[index],
-            g: tex.data[index + 1],
-            b: tex.data[index + 2],
-            a: tex.data[index + 3]
-        };
-    }
-
-
-
 }
