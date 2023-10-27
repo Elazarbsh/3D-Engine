@@ -17,20 +17,30 @@ export class TriangleClipper{
         // Now classify triangle points, and break the input triangle into
         // smaller output triangles if required. There are four possible outcomes...
 
-        if (insidePoints.length === 0) {
+        if (insidePoints.length === 0)
             // All points lie on the outside of plane, so clip whole triangle
             // It ceases to exist
             return [];
-        }
+        
 
-        if (insidePoints.length === 3) {
+        if (insidePoints.length === 3)
             // All points lie on the inside of plane, so do nothing
             // and allow the triangle to simply pass through
             //return [tri];
             return [tri.copy()];
-        }
+        
 
-        if (insidePoints.length === 1 && outsidePoints.length === 2) {
+        if (insidePoints.length === 1 && outsidePoints.length === 2)
+            return this.handleOneInsidePoint(tri, plane, insidePoints, outsidePoints, texelsInsidePoints, texelsOutsidePoints);
+        
+
+        if (insidePoints.length === 2 && outsidePoints.length === 1)
+            return this.handleTwoInsidePoints(tri, plane, insidePoints, outsidePoints, texelsInsidePoints, texelsOutsidePoints);
+
+        return [];
+    }
+
+    private static handleOneInsidePoint(tri : Tri, plane : Plane, insidePoints : Vec3[], outsidePoints : Vec3[] ,texelsInsidePoints : Texel[], texelsOutsidePoints : Texel[]){
             // Triangle should be clipped. As two points lie outside
             // the plane, the triangle simply becomes a smaller triangle
             // The inside point is valid, so keep that...
@@ -53,9 +63,9 @@ export class TriangleClipper{
             const newTri = new Tri(v1, v2, v3, texel1, texel2, texel3);
             newTri.surfaceLightIntensity = tri.surfaceLightIntensity;
             return [newTri]; // Return the newly formed single triangle
-        }
+    }
 
-        if (insidePoints.length === 2 && outsidePoints.length === 1) {
+    private static handleTwoInsidePoints(tri : Tri, plane : Plane, insidePoints : Vec3[], outsidePoints : Vec3[] ,texelsInsidePoints : Texel[], texelsOutsidePoints : Texel[]){
             // Triangle should be clipped. As two points lie inside the plane,
             // the clipped triangle becomes a "quad". Fortunately, we can
             // represent a quad with two new triangles
@@ -63,33 +73,21 @@ export class TriangleClipper{
             // The first triangle consists of the two inside points and a new
             // point determined by the location where one side of the triangle
             // intersects with the plane
-            let newTri1v1 = insidePoints[0];
-            let newTri1v2 = insidePoints[1];
-            let newTri1uv1 = texelsInsidePoints[0];
-            let newTri1uv2 = texelsInsidePoints[1];
-
             let newTri1v3 = Plane.linePlaneIntersect(plane, insidePoints[0], outsidePoints[0]);
             let t: number = Plane.getNormalizedIntersectionDistance(plane, insidePoints[0], outsidePoints[0]);
             let newTri1uv3 = this.interpolateTexel(plane, texelsInsidePoints[0], texelsOutsidePoints[0], t);
-            const newTri1 = new Tri(newTri1v1, newTri1v2, newTri1v3, newTri1uv1, newTri1uv2, newTri1uv3);
+            const newTri1 = new Tri(insidePoints[0], insidePoints[1], newTri1v3, texelsInsidePoints[0], texelsInsidePoints[1], newTri1uv3);
 
             // The second triangle is composed of one of the inside points, a
             // new point determined by the intersection of the other side of the 
             // triangle and the plane, and the newly created point above
-            let newTri2v1 = insidePoints[1];
-            let newTri2uv1 = texelsInsidePoints[1];
-            let newTri2v2 = newTri1.v3;
-            let newTri2uv2 = newTri1.texel3;
-
             let newTri2v3 = Plane.linePlaneIntersect(plane, insidePoints[1], outsidePoints[0]);
             t = Plane.getNormalizedIntersectionDistance(plane, insidePoints[1], outsidePoints[0]);
             let newTri2uv3 = this.interpolateTexel(plane, texelsInsidePoints[1], texelsOutsidePoints[0], t);
-            const newTri2 = new Tri(newTri2v1, newTri2v2, newTri2v3, newTri2uv1, newTri2uv2, newTri2uv3);
+            const newTri2 = new Tri(insidePoints[1], newTri1v3.copy(), newTri2v3, texelsInsidePoints[1], newTri1.texel3.copy(), newTri2uv3);
             newTri1.surfaceLightIntensity = tri.surfaceLightIntensity;
             newTri2.surfaceLightIntensity = tri.surfaceLightIntensity;
             return [newTri1, newTri2];
-        }
-        return [];
     }
 
     private static interpolateTexel(plane: Plane, texelInside: Texel, texelOutside: Texel, t : number): Texel {

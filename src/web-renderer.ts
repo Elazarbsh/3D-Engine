@@ -66,7 +66,7 @@ export class Renderer {
                 for (const tri of clipedTris) {
 
                     // calcualte light intensity
-                    tri.surfaceLightIntensity = scene.light.calculateLightIntensity(rotatedTri);
+                    tri.surfaceLightIntensity = scene.light.isEnabled ? scene.light.calculateLightIntensity(rotatedTri) : 1;
 
                     // to camera space
                     const projectedTri: Tri = Tri.matrixMul(tri, projectionMatrix);
@@ -92,7 +92,7 @@ export class Renderer {
         if (mesh.material.texture === null) {
             this.draw(clippedTris.sort(this.sortTriangles), mesh.material);
         } else {
-            this.texturize(clippedTris, mesh.material.color, mesh.material.texture);
+            this.texturize(clippedTris.sort(this.sortTriangles), mesh.material.color, mesh.material.texture);
         }
     }
 

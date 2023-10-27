@@ -1,5 +1,7 @@
-import { Camera } from "./camera";
-import { Model } from "./model";
+import { Camera } from "./camera.js";
+import { Model } from "./model.js";
+import { Vec3 } from "./vec3.js";
+import { CameraConsts } from "./consts/camera-consts.js";
 
 
 export class BrowserMouseControls {
@@ -69,12 +71,10 @@ export class BrowserMouseControls {
 
     private handleMouseWheel = (event: WheelEvent): void => {
         const delta = event.deltaY;
-
-        if (delta > 0) {
-            this.cam.position.z -= 1;
-        } else {
-            this.cam.position.z += 1;
-        }
+        if (delta > 0)
+            this.cam.position = Vec3.sub(this.cam.position, Vec3.mul(this.cam.forward, CameraConsts.DEFAULT_CAMERA_ZOOM_SPEED));
+        else
+            this.cam.position = Vec3.add(this.cam.position, Vec3.mul(this.cam.forward, CameraConsts.DEFAULT_CAMERA_ZOOM_SPEED));
     }
 
     public get cam(): Camera {

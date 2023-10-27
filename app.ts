@@ -10,6 +10,8 @@ import { RGBA } from "./src/rgba.js";
 import { Geometry } from "./src/geometry.js";
 import { Texture } from "./src/texture.js";
 import { Material } from "./src/material.js";
+import { TextureLoader } from "./src/texture-loader.js";
+import { ModelLoader } from "./src/model-loader.js";
 
 (async () => {
   const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
@@ -17,10 +19,11 @@ import { Material } from "./src/material.js";
   let renderer: Renderer = new Renderer(canvas);
   let cam: Camera = new Camera(new Vec3(0, 0, -10), new Vec3(0, 1, 0), new Vec3(0, 0, 1), new Vec3(1, 0, 0));
   let light: Light = new Light(new Vec3(0, 0, 1));
+  light.isEnabled = true;
   let scene: Scene = new Scene(light);
   let camControls : BrowserFreeCameraControls = new BrowserFreeCameraControls(cam);
 
-  const texture = await Texture.loadTextureFromImage("daxter.png");
+  const texture = await TextureLoader.loadTextureFromImage("truck.png");
 
   const material = new Material();
   material.color = new RGBA(255, 255, 255);
@@ -29,7 +32,7 @@ import { Material } from "./src/material.js";
   //material.wireframeColor = new RGBA(200, 15, 80);
   material.texture = texture;
 
-  const mesh: Model = await Model.loadModelFromObjectFile('daxter.obj', true);
+  const mesh: Model = await ModelLoader.loadFromObjectFile('truck.obj');
   
   mesh.material = material;
 

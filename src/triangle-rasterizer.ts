@@ -154,15 +154,14 @@ export class TriangleRasterizer {
                     tex_u = (1.0 - t) * tex_su + t * tex_eu;
                     tex_v = (1.0 - t) * tex_sv + t * tex_ev;
                     tex_w = (1.0 - t) * tex_sw + t * tex_ew;
-
-                    const color = tex.sampleColorAtUV(tex_u / tex_w, tex_v / tex_w);
-                    const red: number = color.red * (materialColor.red / 255) * tri.surfaceLightIntensity;
-                    const green: number = color.green * (materialColor.green / 255) * tri.surfaceLightIntensity;
-                    const blue: number = color.blue * (materialColor.blue / 255) * tri.surfaceLightIntensity;
-
                     var index = Math.floor(i * canvas.width + j);
 
                     if (tex_w > this._depthBuffer[index]) {
+                        const color = tex.sampleColorAtNormalizedCoordinates(tex_u / tex_w, tex_v / tex_w);
+                        const red: number = color.red * (materialColor.red / 255) * tri.surfaceLightIntensity;
+                        const green: number = color.green * (materialColor.green / 255) * tri.surfaceLightIntensity;
+                        const blue: number = color.blue * (materialColor.blue / 255) * tri.surfaceLightIntensity;
+
                         this.drawPixel(canvas, j, i, new RGBA(red, green, blue), color.alpha);
                         this._depthBuffer[i * canvas.width + j] = tex_w;
                     }
@@ -217,7 +216,7 @@ export class TriangleRasterizer {
                     tex_v = (1.0 - t) * tex_sv + t * tex_ev;
                     tex_w = (1.0 - t) * tex_sw + t * tex_ew;
 
-                    const color = tex.sampleColorAtUV(tex_u / tex_w, tex_v / tex_w);
+                    const color = tex.sampleColorAtNormalizedCoordinates(tex_u / tex_w, tex_v / tex_w);
                     const red: number = color.red * (materialColor.red / 255) * tri.surfaceLightIntensity;
                     const green: number = color.green * (materialColor.green / 255) * tri.surfaceLightIntensity;
                     const blue: number = color.blue * (materialColor.blue / 255) * tri.surfaceLightIntensity;

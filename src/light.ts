@@ -3,12 +3,12 @@ import { Vec3 } from "./vec3.js";
 
 export class Light{
     private _direction: Vec3;
-    private _on: boolean;
+    private _isEnabled: boolean;
 
 
-    constructor(direction : Vec3, on : boolean = true){
+    constructor(direction : Vec3, isEnabled : boolean = true){
         this._direction = direction;
-        this._on = on;
+        this._isEnabled = isEnabled;
     }
 
     public calculateLightIntensity(tri : Tri) : number{
@@ -18,11 +18,11 @@ export class Light{
         const intensity = Math.max(dotProduct, 0);
         return intensity;
     }
-    public get on(): boolean {
-        return this._on;
+    public get isEnabled(): boolean {
+        return this._isEnabled;
     }
-    public set on(value: boolean) {
-        this._on = value;
+    public set isEnabled(value: boolean) {
+        this._isEnabled = value;
     }
     public get direction(): Vec3 {
         return this._direction;
