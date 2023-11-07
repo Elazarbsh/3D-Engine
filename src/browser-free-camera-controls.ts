@@ -15,7 +15,7 @@ export class BrowserFreeCameraControls {
         this.turnOnControls();
     }
 
-    handleKeyDown = (event: KeyboardEvent): void => {
+    private handleKeyDown = (event: KeyboardEvent): void => {
         switch (event.key) {
             // pan
             case "ArrowUp": this.cam.position = Vec3.add(this.cam.position, Vec3.mul(this.cam.up, this.movingSpeed)); break;

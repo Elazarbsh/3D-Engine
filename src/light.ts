@@ -6,7 +6,7 @@ export class Light{
     private _isEnabled: boolean;
 
 
-    constructor(direction : Vec3, isEnabled : boolean = true){
+    constructor(direction : Vec3 = new Vec3(0, 0, 1), isEnabled : boolean = true){
         this._direction = direction;
         this._isEnabled = isEnabled;
     }

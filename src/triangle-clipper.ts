@@ -5,7 +5,7 @@ import { Vec3 } from "./vec3.js";
 
 export class TriangleClipper{
 
-    static clipAgainstPlane(plane: Plane, tri: Tri): Tri[] {
+    public static clipAgainstPlane(plane: Plane, tri: Tri): Tri[] {
         // Create two temporary storage arrays to classify points either side of plane
         // If distance sign is positive, point lies on "inside" of plane
         const classifiedPoints = this.classifyPoints(plane, tri);

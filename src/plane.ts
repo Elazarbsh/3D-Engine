@@ -10,14 +10,14 @@ export class Plane{
         this._point = point;
     }
     
-    static linePlaneIntersect(plane : Plane, lineStart: Vec3, lineEnd: Vec3): Vec3 {
+    public static linePlaneIntersect(plane : Plane, lineStart: Vec3, lineEnd: Vec3): Vec3 {
         const t = this.getNormalizedIntersectionDistance(plane, lineStart, lineEnd);
         const lineStartToEnd = Vec3.sub(lineEnd, lineStart);
         const lineToIntersect = Vec3.mul(lineStartToEnd, t);
         return Vec3.add(lineStart, lineToIntersect);
     }
 
-    static getNormalizedIntersectionDistance(plane : Plane, lineStart: Vec3, lineEnd: Vec3){
+    public static getNormalizedIntersectionDistance(plane : Plane, lineStart: Vec3, lineEnd: Vec3){
         const planeNormal = Vec3.normalize(plane.normal);
         const planeDistance = -Vec3.dotProduct(planeNormal, plane.point);
         const startDistance = Vec3.dotProduct(lineStart, planeNormal);
@@ -25,7 +25,7 @@ export class Plane{
         return (-planeDistance - startDistance) / (endDistance - startDistance);
     }
 
-    static distFromPlane(plane: Plane, vec: Vec3): number {
+    public static distFromPlane(plane: Plane, vec: Vec3): number {
         const n = Vec3.normalize(vec);
         return (plane.normal.x * vec.x + plane.normal.y * vec.y + plane.normal.z * vec.z - Vec3.dotProduct(plane.normal, plane.point));
     }

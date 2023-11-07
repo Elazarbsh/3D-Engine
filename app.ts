@@ -14,43 +14,39 @@ import { TextureLoader } from "./src/texture-loader.js";
 import { ModelLoader } from "./src/model-loader.js";
 
 (async () => {
-  const canvas = document.getElementById("myCanvas") as HTMLCanvasElement;
+  const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 
-  let renderer: Renderer = new Renderer(canvas);
-  let cam: Camera = new Camera(new Vec3(0, 0, -10), new Vec3(0, 1, 0), new Vec3(0, 0, 1), new Vec3(1, 0, 0));
-  let light: Light = new Light(new Vec3(0, 0, 1));
-  light.isEnabled = true;
-  let scene: Scene = new Scene(light);
-  let camControls : BrowserFreeCameraControls = new BrowserFreeCameraControls(cam);
+  const renderer: Renderer = new Renderer(canvas);
 
-  const texture = await TextureLoader.loadTextureFromImage("truck.png");
+  const cam: Camera = new Camera();
+  cam.position = new Vec3(0, 0, -10);
+
+  const light: Light = new Light();
+  light.direction = new Vec3(0, 0, 1);
+
+  const scene: Scene = new Scene(light);
+
+  const texture = await TextureLoader.loadTextureFromImage("texture.png");
 
   const material = new Material();
   material.color = new RGBA(255, 255, 255);
   material.wireframe = true;
   material.wireframeWidth = 2;
-  //material.wireframeColor = new RGBA(200, 15, 80);
   material.texture = texture;
 
-  const mesh: Model = await ModelLoader.loadFromObjectFile('truck.obj');
-  
+  const mesh: Model = await ModelLoader.loadFromObjectFile('model.obj');
   mesh.material = material;
-
-  //const mesh : Model = Geometry.cube();
-  scene.addModel(mesh);
-
   mesh.translation = new Vec3(0, 0, 0);
 
-  let mouseControls : BrowserMouseControls = new BrowserMouseControls(mesh, cam, canvas);
+  scene.addModel(mesh);
+
+  const mouseControls : BrowserMouseControls = new BrowserMouseControls(mesh, cam, canvas);
 
   function animate(timeElapsed: number) {
     renderer.render(scene, cam);
   }
 
-  console.log(texture.textureData);
-
   const intervalInMilliseconds = 30;
-
   let start = new Date();
   let end = new Date();
   let timeElapsed = 0;
@@ -62,7 +58,3 @@ import { ModelLoader } from "./src/model-loader.js";
   },
     intervalInMilliseconds);
 })();
-
-
-
-
