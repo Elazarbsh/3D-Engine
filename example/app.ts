@@ -1,17 +1,13 @@
-import { Vec3 } from "./src/vec3.js";
-import { Model } from "./src/model.js";
-import { Camera } from "./src/camera.js";
-import { Light } from "./src/light.js";
-import { Renderer } from "./src/web-renderer.js";
-import { Scene } from "./src/scene.js";
-import { BrowserFreeCameraControls } from "./src/browser-free-camera-controls.js";
-import { BrowserMouseControls } from "./src/browser-mouse-controls.js";
-import { RGBA } from "./src/rgba.js";
-import { Geometry } from "./src/geometry.js";
-import { Texture } from "./src/texture.js";
-import { Material } from "./src/material.js";
-import { TextureLoader } from "./src/texture-loader.js";
-import { ModelLoader } from "./src/model-loader.js";
+import { Vec3 } from "../src/vec3.js";
+import { Model } from "../src/model.js";
+import { Camera } from "../src/camera.js";
+import { Light } from "../src/light.js";
+import { Renderer } from "../src/web-renderer.js";
+import { Scene } from "../src/scene.js";
+import { RGBA } from "../src/rgba.js";
+import { Material } from "../src/material.js";
+import { TextureLoader } from "../src/texture-loader.js";
+import { ModelLoader } from "../src/model-loader.js";
 
 (async () => {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -19,7 +15,7 @@ import { ModelLoader } from "./src/model-loader.js";
   const renderer: Renderer = new Renderer(canvas);
 
   const cam: Camera = new Camera();
-  cam.position = new Vec3(0, 0, -10);
+  cam.position = new Vec3(0, 1, -5);
 
   const light: Light = new Light();
   light.direction = new Vec3(0, 0, 1);
@@ -40,9 +36,9 @@ import { ModelLoader } from "./src/model-loader.js";
 
   scene.addModel(mesh);
 
-  const mouseControls : BrowserMouseControls = new BrowserMouseControls(mesh, cam, canvas);
-
   function animate(timeElapsed: number) {
+    const yRotation = timeElapsed * 0.2;
+    mesh.rotation = new Vec3(0, yRotation, 0);
     renderer.render(scene, cam);
   }
 
@@ -51,7 +47,7 @@ import { ModelLoader } from "./src/model-loader.js";
   let end = new Date();
   let timeElapsed = 0;
 
-  const intervalId = setInterval(() => {
+  setInterval(() => {
     timeElapsed = ((end.getTime() - start.getTime()) / 1000);
     animate(timeElapsed);
     end = new Date();
