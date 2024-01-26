@@ -21,6 +21,8 @@ export class Renderer {
     private _depthBuffer: number[];
     private _imageData: ImageData;
     private _canvasCtx: CanvasRenderingContext2D | null;
+    private _backgroundColor: RGBA;
+
 
     constructor(canvas: HTMLCanvasElement) {
         this._screenWidth = canvas.width;
@@ -34,6 +36,7 @@ export class Renderer {
         this._imageData = this._canvasCtx.createImageData(canvas.width, canvas.height);
         this._depthBuffer = new Array(canvas.width * canvas.height).fill(0);
         this._rasterizer = new TriangleRasterizer(this._imageData, this._depthBuffer);
+        this._backgroundColor = new RGBA(0,0,0);
     }
 
     public render(scene: Scene, camera: Camera) : void{
@@ -45,7 +48,7 @@ export class Renderer {
     private renderMesh(mesh: Model, scene: Scene, cam: Camera) : void{
         const translationMatrix: Mat4x4 = Mat4x4.getTranslationMatrix(mesh.translation);
         const cameraMatrix: Mat4x4 = cam.cameraMatrix();
-        const projectionMatrix: Mat4x4 = Mat4x4.getProjectionMatrix(90, 1, 0.1, 100);
+        const projectionMatrix: Mat4x4 = Mat4x4.getProjectionMatrix(90, this.screenHeight / this.screenWidth, 0.1, 100);
         const rotationMatrix = Mat4x4.multiply(
             Mat4x4.getZaxisRotationMatrix(mesh.rotation.z), 
             Mat4x4.multiply(Mat4x4.getYaxisRotationMatrix(mesh.rotation.y), Mat4x4.getXaxisRotationMatrix(mesh.rotation.x)));
@@ -135,10 +138,10 @@ export class Renderer {
     private clearImageData(imageData: ImageData) : void{
         const dataSize = imageData.width * imageData.height * 4;
         for (let i = 0; i < dataSize; i += 4) {
-            imageData.data[i] = 0;
-            imageData.data[i + 1] = 0;
-            imageData.data[i + 2] = 0;
-            imageData.data[i + 3] = 255;
+            imageData.data[i] = this.backgroundColor.red;
+            imageData.data[i + 1] = this.backgroundColor.green;
+            imageData.data[i + 2] = this.backgroundColor.blue;
+            imageData.data[i + 3] = this._backgroundColor.alpha;
         }
         this.clearDepthBuffer();
     }
@@ -159,8 +162,8 @@ export class Renderer {
     }
 
     private clearScreen() : void{
-        this._canvasCtx!.fillStyle = 'black';
-        this._canvasCtx!.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.clearImageData(this._imageData);
+        this.swapBuffer();
     }
 
     private swapBuffer() : void {
@@ -188,5 +191,11 @@ export class Renderer {
     }
     public set screenHeight(value: number) {
         this._screenHeight = value;
+    }
+    public get backgroundColor(): RGBA {
+        return this._backgroundColor;
+    }
+    public set backgroundColor(value: RGBA) {
+        this._backgroundColor = value;
     }
 }
