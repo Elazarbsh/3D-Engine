@@ -3,129 +3,179 @@ import { Tri } from "./tri.js";
 import { Texel } from "./texel.js";
 import { Vec3 } from "./vec3.js";
 
-export class Geometry{
+export class Geometry {
 
-    public static cube() : Model{
-        return new Model([
-            // SOUTH
-            new Tri(
-                new Vec3(0.0, 0.0, 0.0),
-                new Vec3(0.0, 1.0, 0.0),
-                new Vec3(1.0, 1.0, 0.0),
-                
-                new Texel(0,1),
-                new Texel(0,0),
-                new Texel(1,0),
-            ),
-            new Tri(
-                new Vec3(0.0, 0.0, 0.0),
-                new Vec3(1.0, 1.0, 0.0),
-                new Vec3(1.0, 0.0, 0.0),
+    public static readonly CUBE: Model = new Model([
+        // SOUTH
+        new Tri(
+            new Vec3(-0.5, -0.5, -0.5),
+            new Vec3(-0.5, 0.5, -0.5),
+            new Vec3(0.5, 0.5, -0.5),
+    
+            new Texel(0, 1),
+            new Texel(0, 0),
+            new Texel(1, 0),
+        ),
+        new Tri(
+            new Vec3(-0.5, -0.5, -0.5),
+            new Vec3(0.5, 0.5, -0.5),
+            new Vec3(0.5, -0.5, -0.5),
+    
+            new Texel(0, 1),
+            new Texel(1, 0),
+            new Texel(1, 1),
+        ),
+    
+        // EAST
+        new Tri(
+            new Vec3(0.5, -0.5, -0.5),
+            new Vec3(0.5, 0.5, -0.5),
+            new Vec3(0.5, 0.5, 0.5),
+    
+            new Texel(0, 1),
+            new Texel(0, 0),
+            new Texel(1, 0),
+        ),
+        new Tri(
+            new Vec3(0.5, -0.5, -0.5),
+            new Vec3(0.5, 0.5, 0.5),
+            new Vec3(0.5, -0.5, 0.5),
+    
+            new Texel(0, 1),
+            new Texel(1, 0),
+            new Texel(1, 1),
+        ),
+    
+        // NORTH
+        new Tri(
+            new Vec3(0.5, -0.5, 0.5),
+            new Vec3(0.5, 0.5, 0.5),
+            new Vec3(-0.5, 0.5, 0.5),
+    
+            new Texel(0, 1),
+            new Texel(0, 0),
+            new Texel(1, 0),
+        ),
+        new Tri(
+            new Vec3(0.5, -0.5, 0.5),
+            new Vec3(-0.5, 0.5, 0.5),
+            new Vec3(-0.5, -0.5, 0.5),
+    
+            new Texel(0, 1),
+            new Texel(1, 0),
+            new Texel(1, 1),
+        ),
+    
+        // WEST
+        new Tri(
+            new Vec3(-0.5, -0.5, 0.5),
+            new Vec3(-0.5, 0.5, 0.5),
+            new Vec3(-0.5, 0.5, -0.5),
+    
+            new Texel(0, 1),
+            new Texel(0, 0),
+            new Texel(1, 0),
+        ),
+        new Tri(
+            new Vec3(-0.5, -0.5, 0.5),
+            new Vec3(-0.5, 0.5, -0.5),
+            new Vec3(-0.5, -0.5, -0.5),
+    
+            new Texel(0, 1),
+            new Texel(1, 0),
+            new Texel(1, 1),
+        ),
+    
+        // TOP
+        new Tri(
+            new Vec3(-0.5, 0.5, -0.5),
+            new Vec3(-0.5, 0.5, 0.5),
+            new Vec3(0.5, 0.5, 0.5),
+    
+            new Texel(0, 1),
+            new Texel(0, 0),
+            new Texel(1, 0),
+        ),
+        new Tri(
+            new Vec3(-0.5, 0.5, -0.5),
+            new Vec3(0.5, 0.5, 0.5),
+            new Vec3(0.5, 0.5, -0.5),
+    
+            new Texel(0, 1),
+            new Texel(1, 0),
+            new Texel(1, 1),
+        ),
+    
+        // BOTTOM
+        new Tri(
+            new Vec3(0.5, -0.5, 0.5),
+            new Vec3(-0.5, -0.5, 0.5),
+            new Vec3(-0.5, -0.5, -0.5),
+    
+            new Texel(0, 1),
+            new Texel(0, 0),
+            new Texel(1, 0),
+        ),
+        new Tri(
+            new Vec3(0.5, -0.5, 0.5),
+            new Vec3(-0.5, -0.5, -0.5),
+            new Vec3(0.5, -0.5, -0.5),
+    
+            new Texel(0, 1),
+            new Texel(1, 0),
+            new Texel(1, 1),
+        )
+    ]);
 
-                new Texel(0,1),
-                new Texel(1,0),
-                new Texel(1,1),
-            ),
-        
-            // EAST
-            new Tri(
-                new Vec3(1.0, 0.0, 0.0),
-                new Vec3(1.0, 1.0, 0.0),
-                new Vec3(1.0, 1.0, 1.0),
+    public static sphere(segments: number): Model {
+        const vertices: Vec3[] = [];
+        const texels: Texel[] = [];
+        const tris: Tri[] = [];
 
-                new Texel(0,1),
-                new Texel(0,0),
-                new Texel(1,0),
-            ),
-            new Tri(
-                new Vec3(1.0, 0.0, 0.0),
-                new Vec3(1.0, 1.0, 1.0),
-                new Vec3(1.0, 0.0, 1.0),
+        for (let lat = 0; lat <= segments; lat++) {
+            const theta = (lat * Math.PI) / segments;
+            const sinTheta = Math.sin(theta);
+            const cosTheta = Math.cos(theta);
 
-                new Texel(0,1),
-                new Texel(1,0),
-                new Texel(1,1),
-            ),
-        
-            // NORTH
-            new Tri(
-                new Vec3(1.0, 0.0, 1.0),
-                new Vec3(1.0, 1.0, 1.0),
-                new Vec3(0.0, 1.0, 1.0),
+            for (let long = 0; long <= segments; long++) {
+                const phi = (long * 2 * Math.PI) / segments;
+                const sinPhi = Math.sin(phi);
+                const cosPhi = Math.cos(phi);
 
-                new Texel(0,1),
-                new Texel(0,0),
-                new Texel(1,0),
-            ),
-            new Tri(
-                new Vec3(1.0, 0.0, 1.0),
-                new Vec3(0.0, 1.0, 1.0),
-                new Vec3(0.0, 0.0, 1.0),
+                const x = cosPhi * sinTheta;
+                const y = cosTheta;
+                const z = sinPhi * sinTheta;
 
-                new Texel(0,1),
-                new Texel(1,0),
-                new Texel(1,1),
-            ),
-        
-            // WEST
-            new Tri(
-                new Vec3(0.0, 0.0, 1.0),
-                new Vec3(0.0, 1.0, 1.0),
-                new Vec3(0.0, 1.0, 0.0),
+                vertices.push(new Vec3(x, y, z));
+                texels.push(new Texel(1 - (long / segments), 1 - (lat / segments)));
+            }
+        }
 
-                new Texel(0,1),
-                new Texel(0,0),
-                new Texel(1,0),
-            ),
-            new Tri(
-                new Vec3(0.0, 0.0, 1.0),
-                new Vec3(0.0, 1.0, 0.0),
-                new Vec3(0.0, 0.0, 0.0),
+        for (let lat = 0; lat < segments; lat++) {
+            for (let long = 0; long < segments; long++) {
+                const first = (lat * (segments + 1)) + long;
+                const second = first + segments + 1;
 
-                new Texel(0,1),
-                new Texel(1,0),
-                new Texel(1,1),
-            ),
-        
-            // TOP
-            new Tri(
-                new Vec3(0.0, 1.0, 0.0),
-                new Vec3(0.0, 1.0, 1.0),
-                new Vec3(1.0, 1.0, 1.0),
+                tris.push(new Tri(
+                    vertices[first],
+                    vertices[second],
+                    vertices[first + 1],
+                    texels[first],
+                    texels[second],
+                    texels[first + 1]
+                ));
 
-                new Texel(0,1),
-                new Texel(0,0),
-                new Texel(1,0),
-            ),
-            new Tri(
-                new Vec3(0.0, 1.0, 0.0),
-                new Vec3(1.0, 1.0, 1.0),
-                new Vec3(1.0, 1.0, 0.0),
+                tris.push(new Tri(
+                    vertices[first + 1],
+                    vertices[second],
+                    vertices[second + 1],
+                    texels[first + 1],
+                    texels[second],
+                    texels[second + 1]
+                ));
+            }
+        }
 
-                new Texel(0,1),
-                new Texel(1,0),
-                new Texel(1,1),
-            ),
-        
-            // BOTTOM
-            new Tri(
-                new Vec3(1.0, 0.0, 1.0),
-                new Vec3(0.0, 0.0, 1.0),
-                new Vec3(0.0, 0.0, 0.0),
-
-                new Texel(0,1),
-                new Texel(0,0),
-                new Texel(1,0),
-            ),
-            new Tri(
-                new Vec3(1.0, 0.0, 1.0),
-                new Vec3(0.0, 0.0, 0.0),
-                new Vec3(1.0, 0.0, 0.0),
-
-                new Texel(0,1),
-                new Texel(1,0),
-                new Texel(1,1),
-            )
-        ]);
+        return new Model(tris);
     }
 }
