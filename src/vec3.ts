@@ -52,6 +52,13 @@ export class Vec3 {
         return Math.sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
     }
 
+    public static dist(vec1: Vec3, vec2: Vec3): number {
+        const dx = vec1.x - vec2.x;
+        const dy = vec1.y - vec2.y;
+        const dz = vec1.z - vec2.z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
     public static normalize(vec: Vec3): Vec3 {
         const length = Vec3.getLength(vec);
         return new Vec3(vec.x / length, vec.y / length, vec.z / length);
