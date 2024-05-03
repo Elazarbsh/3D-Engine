@@ -11,7 +11,7 @@ export class Material {
     constructor(
         color: RGBA = new RGBA(),
         wireframe: boolean = false,
-        wireframeWidth: number = 2,
+        wireframeWidth: number = 1,
         texture: Texture | null = null,
         wireframeColor: RGBA = new RGBA) {
         this._color = color;
