@@ -22,17 +22,17 @@ export class TransformControls {
         this._model = model;
         this._cam = cam;
         this._canvas = canvas;
-        this.turnOnMouseControls();
+        this.enableControls();
     }
 
-    public turnOnMouseControls() {
+    public enableControls() {
         this.canvas.addEventListener('mousedown', this.handleMouseDown);
         this.canvas.addEventListener('mouseup', this.handleMouseUp);
         this.canvas.addEventListener('mousemove', this.handleMouseMove);
         this.canvas.addEventListener('wheel', this.handleMouseWheel);
     }
 
-    public turnOffMouseControls() {
+    public disableControls() {
         this.canvas.removeEventListener('mousedown', this.handleMouseDown);
         this.canvas.removeEventListener('mouseup', this.handleMouseUp);
         this.canvas.removeEventListener('mousemove', this.handleMouseMove);
