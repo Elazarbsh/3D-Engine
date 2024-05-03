@@ -13,7 +13,6 @@ import { TriangleRasterizer } from "./triangle-rasterizer.js";
 import { Vec3 } from "./vec3.js";
 
 export class Renderer {
-
     private _screenWidth: number;
     private _screenHeight: number;
     private _canvas: HTMLCanvasElement;
@@ -22,7 +21,7 @@ export class Renderer {
     private _imageData: ImageData;
     private _canvasCtx: CanvasRenderingContext2D | null;
     private _backgroundColor: RGBA;
-
+    private _renderNonCameraFacingTris: boolean = false;
 
     constructor(canvas: HTMLCanvasElement) {
         this._screenWidth = canvas.width;
@@ -60,7 +59,8 @@ export class Renderer {
             const translatedTri = Tri.matrixMul(rotatedTri, translationMatrix)
             const camViewTri: Tri = Tri.matrixMul(translatedTri, cameraMatrix);
 
-            if (cam.isVisibleTri(camViewTri)) {
+
+            if (cam.isVisibleTri(camViewTri) || this._renderNonCameraFacingTris) {
                 const clipedTris: Tri[] = TriangleClipper.clipAgainstPlane(
                     new Plane(new Vec3(0, 0, 0.001), new Vec3(0, 0, 0.001)),
                     camViewTri
@@ -197,5 +197,11 @@ export class Renderer {
     }
     public set backgroundColor(value: RGBA) {
         this._backgroundColor = value;
+    }
+    public get renderNonCameraFacingTris(): boolean {
+        return this._renderNonCameraFacingTris;
+    }
+    public set renderNonCameraFacingTris(value: boolean) {
+        this._renderNonCameraFacingTris = value;
     }
 }
