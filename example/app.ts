@@ -6,39 +6,40 @@ import { Renderer } from "../src/web-renderer.js";
 import { Scene } from "../src/scene.js";
 import { RGBA } from "../src/rgba.js";
 import { Material } from "../src/material.js";
-import { TextureLoader } from "../src/texture-loader.js";
-import { ModelLoader } from "../src/model-loader.js";
+import { TextureLoader } from "../src/loaders/texture-loader.js";
+import { ModelLoader } from "../src/loaders/model-loader.js";
+import { Geometry } from "../src/geometry.js";
+import { TransformControls } from "../src/controls/transform-controls.js";
 
 (async () => {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-
   const renderer: Renderer = new Renderer(canvas);
 
   const cam: Camera = new Camera();
-  cam.position = new Vec3(0, 1, -5);
+  cam.position = new Vec3(0, 0, -5);
 
   const light: Light = new Light();
   light.direction = new Vec3(0, 0, 1);
+  light.isEnabled = true;
 
   const scene: Scene = new Scene(light);
-
-  const texture = await TextureLoader.loadTextureFromImage("texture.png");
+  renderer.backgroundColor = new RGBA(10, 200, 100);
 
   const material = new Material();
-  material.color = new RGBA(255, 255, 255);
+  material.color = new RGBA(200, 50, 200);
   material.wireframe = true;
-  material.wireframeWidth = 2;
-  material.texture = texture;
 
-  const mesh: Model = await ModelLoader.loadFromObjectFile('model.obj');
+  let mesh: Model = Geometry.sphere(25);
   mesh.material = material;
   mesh.translation = new Vec3(0, 0, 0);
 
   scene.addModel(mesh);
+  let controls = new TransformControls(mesh, cam, canvas);
+
+  renderer.render(scene, cam);
 
   function animate(timeElapsed: number) {
-    const yRotation = timeElapsed * 0.2;
-    mesh.rotation = new Vec3(0, yRotation, 0);
+    controls.update();
     renderer.render(scene, cam);
   }
 
@@ -53,4 +54,41 @@ import { ModelLoader } from "../src/model-loader.js";
     end = new Date();
   },
     intervalInMilliseconds);
+
+  const modelFileInput = document.getElementById('modelFileInput') as HTMLInputElement;
+  const textureFileInput = document.getElementById('textureFileInput') as HTMLInputElement;
+
+  modelFileInput.addEventListener('change', async (event) => {
+    if (event.target instanceof HTMLInputElement && event.target.files) {
+      const file = event.target.files[0];
+      if (file) {
+        try {
+          mesh = await ModelLoader.loadFromObjectFileAsync(file);
+          mesh.material = material;
+          controls.model = mesh;
+          scene.clearModels();
+          scene.addModel(mesh);
+        } catch (error) {
+          console.error("Error parsing the file:", error);
+        }
+      }
+    }
+  });
+
+  textureFileInput.addEventListener('change', async (event) => {
+    if (event.target instanceof HTMLInputElement && event.target.files) {
+      const file = event.target.files[0];
+      if (file) {
+        try {
+          let texture = await TextureLoader.loadTextureFromImageFile(file);
+          let mat = new Material();
+          mat.texture = texture;
+          mesh.material = mat;
+        } catch (error) {
+          console.error("Error parsing the file:", error);
+        }
+      }
+    }
+  });
+
 })();
