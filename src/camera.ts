@@ -55,7 +55,7 @@ export class Camera {
     public isVisibleTri(tri: Tri): boolean {
         const surfaceNormal: Vec3 = tri.getSurfaceNormal();
         const camRay: Vec3 = Vec3.sub(tri.v1, this.forward);
-        const isVisibile = Vec3.dotProduct(surfaceNormal, camRay) < 0;
+        const isVisibile = Vec3.dotProduct(surfaceNormal, camRay) <= 0.2;
         return isVisibile;
     }
 
