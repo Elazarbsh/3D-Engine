@@ -15,15 +15,17 @@ import { Vec3 } from "./vec3.js";
 export class Renderer {
     private _screenWidth: number;
     private _screenHeight: number;
-    private _canvas: HTMLCanvasElement;
+    private _canvas: HTMLCanvasElement | OffscreenCanvas;
     private _rasterizer: TriangleRasterizer;
     private _depthBuffer: number[];
     private _imageData: ImageData;
-    private _canvasCtx: CanvasRenderingContext2D | null;
+    private _canvasCtx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
     private _backgroundColor: RGBA;
-    private _renderNonCameraFacingTris: boolean = false;
+    private _enableNonCameraFacingTrisRendering: boolean = false;
+    private _enablePerspectiveCorrectTextureMapping: boolean = false;
+    private _enableRasterizationViaCanvasApi: boolean = true;
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement | OffscreenCanvas) {
         this._screenWidth = canvas.width;
         this._screenHeight = canvas.height;
         this._canvas = canvas;
@@ -35,21 +37,21 @@ export class Renderer {
         this._imageData = this._canvasCtx.createImageData(canvas.width, canvas.height);
         this._depthBuffer = new Array(canvas.width * canvas.height).fill(0);
         this._rasterizer = new TriangleRasterizer(this._imageData, this._depthBuffer);
-        this._backgroundColor = new RGBA(0,0,0);
+        this._backgroundColor = new RGBA(0, 0, 0);
     }
 
-    public render(scene: Scene, camera: Camera) : void{
+    public render(scene: Scene, camera: Camera): void {
         for (const model of scene.models) {
             this.renderMesh(model, scene, camera);
         }
     }
 
-    private renderMesh(mesh: Model, scene: Scene, cam: Camera) : void{
+    private renderMesh(mesh: Model, scene: Scene, cam: Camera): void {
         const translationMatrix: Mat4x4 = Mat4x4.getTranslationMatrix(mesh.translation);
         const cameraMatrix: Mat4x4 = cam.cameraMatrix();
-        const projectionMatrix: Mat4x4 = Mat4x4.getProjectionMatrix(90, this.screenHeight / this.screenWidth, 0.1, 100);
+        const projectionMatrix: Mat4x4 = Mat4x4.getProjectionMatrix(90, this._screenHeight / this._screenWidth, 0.1, 100);
         const rotationMatrix = Mat4x4.multiply(
-            Mat4x4.getZaxisRotationMatrix(mesh.rotation.z), 
+            Mat4x4.getZaxisRotationMatrix(mesh.rotation.z),
             Mat4x4.multiply(Mat4x4.getYaxisRotationMatrix(mesh.rotation.y), Mat4x4.getXaxisRotationMatrix(mesh.rotation.x)));
 
         let trisToRaster: Tri[] = [];
@@ -60,7 +62,7 @@ export class Renderer {
             const camViewTri: Tri = Tri.matrixMul(translatedTri, cameraMatrix);
 
 
-            if (cam.isVisibleTri(camViewTri) || this._renderNonCameraFacingTris) {
+            if (cam.isVisibleTri(camViewTri) || this._enableNonCameraFacingTrisRendering) {
                 const clipedTris: Tri[] = TriangleClipper.clipAgainstPlane(
                     new Plane(new Vec3(0, 0, 0.001), new Vec3(0, 0, 0.001)),
                     camViewTri
@@ -78,12 +80,14 @@ export class Renderer {
                     const normalizedDepthTri = Tri.normalizeDepth(projectedTri);
 
                     // to screen space
-                    const screenTri = Tri.toScreenSpace(normalizedDepthTri, this.screenWidth, this.screenHeight);
+                    const screenTri = Tri.toScreenSpace(normalizedDepthTri, this._screenWidth, this._screenHeight);
 
                     // prepare texels projection
-                    screenTri.texel1 = Texel.div(screenTri.texel1, projectedTri.v1.w);
-                    screenTri.texel2 = Texel.div(screenTri.texel2, projectedTri.v2.w);
-                    screenTri.texel3 = Texel.div(screenTri.texel3, projectedTri.v3.w);
+                    if (this._enablePerspectiveCorrectTextureMapping && mesh.material.texture != null) {
+                        screenTri.texel1 = Texel.div(screenTri.texel1, projectedTri.v1.w);
+                        screenTri.texel2 = Texel.div(screenTri.texel2, projectedTri.v2.w);
+                        screenTri.texel3 = Texel.div(screenTri.texel3, projectedTri.v3.w);
+                    }
 
                     trisToRaster.push(screenTri);
                 }
@@ -93,9 +97,17 @@ export class Renderer {
         const clippedTris = this.clipScreenSpace(trisToRaster);
 
         if (mesh.material.texture === null) {
-            this.draw(clippedTris.sort(this.sortTriangles), mesh.material);
+            if(this._enableRasterizationViaCanvasApi){
+                this.rasterizeViaCanvasApi(clippedTris.sort(this.sortTriangles), mesh.material);
+            }else{
+                this.rasterize(clippedTris.sort(this.sortTriangles), mesh.material);
+            }
         } else {
-            this.texturize(clippedTris.sort(this.sortTriangles), mesh.material.color, mesh.material.texture);
+            if (this._enablePerspectiveCorrectTextureMapping) {
+                this.texturizePerspectiveCorrect(clippedTris.sort(this.sortTriangles), mesh.material.color, mesh.material.texture);
+            } else {
+                this.texturizeAffine(clippedTris.sort(this.sortTriangles), mesh.material.color, mesh.material.texture);
+            }
         }
     }
 
@@ -107,9 +119,9 @@ export class Renderer {
 
     private clipScreenSpace(trisToRaster: Tri[]): Tri[] {
         const topScreenPlane = new Plane(new Vec3(0, 1, 0), new Vec3(0, 0, 0));
-        const bottomScreenPlane = new Plane(new Vec3(0, -1, 0), new Vec3(0, this.screenHeight, 0)); // top
+        const bottomScreenPlane = new Plane(new Vec3(0, -1, 0), new Vec3(0, this._screenHeight, 0)); // top
         const leftScreenPlane = new Plane(new Vec3(1, 0, 0), new Vec3(0, 0, 0));
-        const rightScreenPlane = new Plane(new Vec3(-1, 0, 0), new Vec3(this.screenWidth, 0, 0)); // left
+        const rightScreenPlane = new Plane(new Vec3(-1, 0, 0), new Vec3(this._screenWidth, 0, 0)); // left
 
         const res = [];
 
@@ -135,7 +147,7 @@ export class Renderer {
         return res;
     }
 
-    private clearImageData(imageData: ImageData) : void{
+    private clearImageData(imageData: ImageData): void {
         const dataSize = imageData.width * imageData.height * 4;
         for (let i = 0; i < dataSize; i += 4) {
             imageData.data[i] = this.backgroundColor.red;
@@ -146,51 +158,61 @@ export class Renderer {
         this.clearDepthBuffer();
     }
 
-    private texturize(trisToRaster: Tri[], color : RGBA ,texture: Texture) {
+    private texturizeAffine(trisToRaster: Tri[], color: RGBA, texture: Texture) {
         this.clearImageData(this._imageData);
         for (const tri of trisToRaster) {
-            this._rasterizer.textureTriangle(this.canvas, tri,texture, color);
+            this._rasterizer.textureTriangleAffine(this.canvas, tri, texture, color);
         }
         this.swapBuffer();
     }
 
-    private draw(trisToRaster: Tri[], material : Material) {
+    private texturizePerspectiveCorrect(trisToRaster: Tri[], color: RGBA, texture: Texture) {
+        this.clearImageData(this._imageData);
+        for (const tri of trisToRaster) {
+            this._rasterizer.textureTrianglePerspectiveCorrect(this.canvas, tri, texture, color);
+        }
+        this.swapBuffer();
+    }
+
+    private rasterize(trisToRaster: Tri[], material: Material) {
+        this.clearImageData(this._imageData);
+        for (const tri of trisToRaster) {
+            this._rasterizer.rasterizeTriangle(this.canvas, tri, material);
+        }
+        this.swapBuffer();
+    }
+
+    private rasterizeViaCanvasApi(trisToRaster: Tri[], material: Material) {
         this.clearScreen();
         for (const tri of trisToRaster) {
-            this._rasterizer.fillTriangle(this.canvas, tri, material);
+            this._rasterizer.rasterizeTriangleViaCanvasApi(this.canvas, tri, material);
         }
     }
 
-    private clearScreen() : void{
+    private clearScreen(): void {
         this.clearImageData(this._imageData);
         this.swapBuffer();
     }
 
-    private swapBuffer() : void {
+    private swapBuffer(): void {
         this._canvasCtx!.putImageData(this._imageData, 0, 0);
     }
 
-    private clearDepthBuffer() : void{
+    private clearDepthBuffer(): void {
         this._depthBuffer.fill(0);
     }
 
-    public get canvas(): HTMLCanvasElement {
+    public get canvas(): HTMLCanvasElement | OffscreenCanvas{
         return this._canvas;
     }
-    public set canvas(value: HTMLCanvasElement) {
+    public set canvas(value: HTMLCanvasElement | OffscreenCanvas) {
         this._canvas = value;
-    }
-    public get screenWidth(): number {
-        return this._screenWidth;
-    }
-    public set screenWidth(value: number) {
-        this._screenWidth = value;
-    }
-    public get screenHeight(): number {
-        return this._screenHeight;
-    }
-    public set screenHeight(value: number) {
-        this._screenHeight = value;
+        this._screenWidth = value.width;
+        this._screenHeight = value.height;
+        this._canvasCtx = value.getContext('2d');
+        this._imageData = this._canvasCtx!.createImageData(this.canvas.width, this.canvas.height);
+        this._depthBuffer = new Array(this._canvas.width * this._canvas.height).fill(0);
+        this._rasterizer = new TriangleRasterizer(this._imageData, this._depthBuffer);
     }
     public get backgroundColor(): RGBA {
         return this._backgroundColor;
@@ -198,10 +220,22 @@ export class Renderer {
     public set backgroundColor(value: RGBA) {
         this._backgroundColor = value;
     }
-    public get renderNonCameraFacingTris(): boolean {
-        return this._renderNonCameraFacingTris;
+    public get enableNonCameraFacingTrisRendering(): boolean {
+        return this._enableNonCameraFacingTrisRendering;
     }
-    public set renderNonCameraFacingTris(value: boolean) {
-        this._renderNonCameraFacingTris = value;
+    public set enableNonCameraFacingTrisRendering(value: boolean) {
+        this._enableNonCameraFacingTrisRendering = value;
+    }
+    public get enablePerspectiveCorrectTextureMapping(): boolean {
+        return this._enablePerspectiveCorrectTextureMapping;
+    }
+    public set enablePerspectiveCorrectTextureMapping(value: boolean) {
+        this._enablePerspectiveCorrectTextureMapping = value;
+    }
+    public get enableRasterizationViaCanvasApi(): boolean {
+        return this._enableRasterizationViaCanvasApi;
+    }
+    public set enableRasterizationViaCanvasApi(value: boolean) {
+        this._enableRasterizationViaCanvasApi = value;
     }
 }
