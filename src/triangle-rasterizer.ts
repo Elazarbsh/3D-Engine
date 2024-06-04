@@ -14,17 +14,7 @@ export class TriangleRasterizer {
         this._depthBuffer = depthBuffer;
     }
 
-    private drawPixel(canvas: HTMLCanvasElement | OffscreenCanvas, x: number, y: number, color: RGBA, alpha: number) {
-        var roundedX = Math.round(x);
-        var roundedY = Math.round(y);
-        var index = 4 * (canvas.width * roundedY + roundedX);
-        this._imageData.data[index + 0] = color.red;
-        this._imageData.data[index + 1] = color.green;
-        this._imageData.data[index + 2] = color.blue;
-        this._imageData.data[index + 3] = alpha;
-    }
-
-    public rasterizeTriangleViaCanvasApi(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material) {
+    public rasterizeTriangleViaCanvasApi(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material, drawMeshEnabled: boolean) {
         const ctx = canvas.getContext("2d");
 
         if (ctx === null)
@@ -70,46 +60,95 @@ export class TriangleRasterizer {
         if (material.wireframe) {
             ctx.stroke();
         }
-        ctx.fill();
+        if(drawMeshEnabled){
+            ctx.fill();
+        }
     }
 
-    public textureTriangleAffine(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, texture: Texture, materialColor: RGBA) {
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+    public rasterizeTriangle(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material, drawMeshEnabled: boolean, textureMappingEnabled: boolean) {
+        if (drawMeshEnabled) {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
 
-        const { v1, v2, v3, texel1, texel2, texel3 } = tri;
+            const { v1, v2, v3, texel1, texel2, texel3 } = tri;
 
-        // Calculate the bounding box of the triangle
-        const minX = Math.floor(Math.min(v1.x, v2.x, v3.x));
-        const maxX = Math.ceil(Math.max(v1.x, v2.x, v3.x));
-        const minY = Math.floor(Math.min(v1.y, v2.y, v3.y));
-        const maxY = Math.ceil(Math.max(v1.y, v2.y, v3.y));
+            const materialColor = material.color;
+            const texture = material.texture;
 
-        // Loop through each pixel in the bounding box
-        for (let y = minY; y <= maxY; y++) {
-            for (let x = minX; x <= maxX; x++) {
-                // Calculate barycentric coordinates
-                const denominator = (v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y);
-                const lambda1 = ((v2.y - v3.y) * (x - v3.x) + (v3.x - v2.x) * (y - v3.y)) / denominator;
-                const lambda2 = ((v3.y - v1.y) * (x - v3.x) + (v1.x - v3.x) * (y - v3.y)) / denominator;
-                const lambda3 = 1 - lambda1 - lambda2;
+            // Calculate the bounding box of the triangle
+            const minX = Math.floor(Math.min(v1.x, v2.x, v3.x));
+            const maxX = Math.ceil(Math.max(v1.x, v2.x, v3.x));
+            const minY = Math.floor(Math.min(v1.y, v2.y, v3.y));
+            const maxY = Math.ceil(Math.max(v1.y, v2.y, v3.y));
 
-                // Check if the pixel is inside the triangle
-                if (lambda1 >= 0 && lambda2 >= 0 && lambda3 >= 0) {
-                    // Interpolate the texture coordinates
-                    const u = lambda1 * texel1.u + lambda2 * texel2.u + lambda3 * texel3.u;
-                    const v = lambda1 * texel1.v + lambda2 * texel2.v + lambda3 * texel3.v;
+            // Loop through each pixel in the bounding box
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    // Calculate barycentric coordinates
+                    const denominator = (v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y);
+                    const lambda1 = ((v2.y - v3.y) * (x - v3.x) + (v3.x - v2.x) * (y - v3.y)) / denominator;
+                    const lambda2 = ((v3.y - v1.y) * (x - v3.x) + (v1.x - v3.x) * (y - v3.y)) / denominator;
+                    const lambda3 = 1 - lambda1 - lambda2;
 
-                    // Sample the color from the texture
-                    const color = texture.sampleColorAtNormalizedCoordinates(u, v);
-                    const red: number = color.red * (materialColor.red / 255) * tri.surfaceLightIntensity;
-                    const green: number = color.green * (materialColor.green / 255) * tri.surfaceLightIntensity;
-                    const blue: number = color.blue * (materialColor.blue / 255) * tri.surfaceLightIntensity;
+                    // Check if the pixel is inside the triangle
+                    if (lambda1 >= 0 && lambda2 >= 0 && lambda3 >= 0) {
+                        // Interpolate the texture coordinates
+                        if (textureMappingEnabled && texture != null) {
+                            const u = lambda1 * texel1.u + lambda2 * texel2.u + lambda3 * texel3.u;
+                            const v = lambda1 * texel1.v + lambda2 * texel2.v + lambda3 * texel3.v;
 
-                    this.drawPixel(canvas, x, y, new RGBA(red, green, blue), color.alpha);
+                            // Sample the color from the texture
+                            const color = texture.sampleColorAtNormalizedCoordinates(u, v);
+                            const red: number = color.red * (materialColor.red / 255) * tri.surfaceLightIntensity;
+                            const green: number = color.green * (materialColor.green / 255) * tri.surfaceLightIntensity;
+                            const blue: number = color.blue * (materialColor.blue / 255) * tri.surfaceLightIntensity;
+
+                            this.drawPixel(canvas, x, y, new RGBA(red, green, blue), color.alpha);
+                        } else {
+                            const red: number = (materialColor.red) * tri.surfaceLightIntensity;
+                            const green: number = (materialColor.green) * tri.surfaceLightIntensity;
+                            const blue: number = (materialColor.blue) * tri.surfaceLightIntensity;
+                            this.drawPixel(canvas, x, y, new RGBA(red, green, blue), materialColor.alpha);
+                        }
+                    }
                 }
             }
         }
+        if (material.wireframe) {
+            this.drawWireframe(canvas, tri, material);
+        }
+    }
+
+    public drawWireframe(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material) {
+        let wireframeColor = material.wireframeColor;
+        const { v1, v2, v3 } = tri;
+
+        this.drawLine(canvas, v1.x, v1.y, v2.x, v2.y, wireframeColor);
+        this.drawLine(canvas, v2.x, v2.y, v3.x, v3.y, wireframeColor);
+        this.drawLine(canvas, v3.x, v3.y, v1.x, v1.y, wireframeColor);
+    }
+
+    private drawLine(canvas: HTMLCanvasElement | OffscreenCanvas, x0: number, y0: number, x1: number, y1: number, color: RGBA) {
+        let x: number = x1 - x0;
+        let y: number = y1 - y0;
+        const max: number = Math.max(Math.abs(x), Math.abs(y));
+        x /= max;
+        y /= max;
+        for (let n = 0; n < max; ++n) {
+            this.drawPixel(canvas, x0, y0, color, color.alpha); // Ensure the endpoint is drawn
+            x0 += x;
+            y0 += y;
+        }
+    }
+
+    private drawPixel(canvas: HTMLCanvasElement | OffscreenCanvas, x: number, y: number, color: RGBA, alpha: number) {
+        var roundedX = Math.round(x);
+        var roundedY = Math.round(y);
+        var index = 4 * (canvas.width * roundedY + roundedX);
+        this._imageData.data[index + 0] = color.red;
+        this._imageData.data[index + 1] = color.green;
+        this._imageData.data[index + 2] = color.blue;
+        this._imageData.data[index + 3] = alpha;
     }
 
     public textureTrianglePerspectiveCorrect(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, tex: Texture, materialColor: RGBA) {
@@ -295,39 +334,6 @@ export class TriangleRasterizer {
             }
         }
     }
-
-    public rasterizeTriangle(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material) {
-
-        let materialColor = material.color;
-        const { v1, v2, v3 } = tri;
-
-        // Calculate the bounding box of the triangle
-        const minX = Math.floor(Math.min(v1.x, v2.x, v3.x));
-        const maxX = Math.ceil(Math.max(v1.x, v2.x, v3.x));
-        const minY = Math.floor(Math.min(v1.y, v2.y, v3.y));
-        const maxY = Math.ceil(Math.max(v1.y, v2.y, v3.y));
-
-        // Loop through each pixel in the bounding box
-        for (let y = minY; y <= maxY; y++) {
-            for (let x = minX; x <= maxX; x++) {
-                // Calculate barycentric coordinates
-                const denominator = (v2.y - v3.y) * (v1.x - v3.x) + (v3.x - v2.x) * (v1.y - v3.y);
-                const lambda1 = ((v2.y - v3.y) * (x - v3.x) + (v3.x - v2.x) * (y - v3.y)) / denominator;
-                const lambda2 = ((v3.y - v1.y) * (x - v3.x) + (v1.x - v3.x) * (y - v3.y)) / denominator;
-                const lambda3 = 1 - lambda1 - lambda2;
-
-                // Check if the pixel is inside the triangle
-                if (lambda1 >= 0 && lambda2 >= 0 && lambda3 >= 0) {
-                    // Sample the color from the texture
-                    const red: number =  (materialColor.red) * tri.surfaceLightIntensity;
-                    const green: number = (materialColor.green) * tri.surfaceLightIntensity;
-                    const blue: number = (materialColor.blue) * tri.surfaceLightIntensity;
-                    this.drawPixel(canvas, x, y, new RGBA(red, green, blue), materialColor.alpha);
-                }
-            }
-        }
-    }
-
 
     // public textureTriangleAffine(canvas: HTMLCanvasElement, tri: Tri, tex: Texture, materialColor: RGBA) {
     //     let x1: number = tri.v1.x;

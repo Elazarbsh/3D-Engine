@@ -24,6 +24,9 @@ export class Renderer {
     private _enableNonCameraFacingTrisRendering: boolean = false;
     private _enablePerspectiveCorrectTextureMapping: boolean = false;
     private _enableRasterizationViaCanvasApi: boolean = true;
+    private _enableTextureMapping: boolean = false;
+    private _enableDrawMesh: boolean = false;
+
 
     constructor(canvas: HTMLCanvasElement | OffscreenCanvas) {
         this._screenWidth = canvas.width;
@@ -96,18 +99,10 @@ export class Renderer {
 
         const clippedTris = this.clipScreenSpace(trisToRaster);
 
-        if (mesh.material.texture === null) {
-            if(this._enableRasterizationViaCanvasApi){
-                this.rasterizeViaCanvasApi(clippedTris.sort(this.sortTriangles), mesh.material);
-            }else{
-                this.rasterize(clippedTris.sort(this.sortTriangles), mesh.material);
-            }
+        if (!this._enableTextureMapping && this._enableRasterizationViaCanvasApi) {
+            this.rasterizeViaCanvasApi(clippedTris.sort(this.sortTriangles), mesh.material);
         } else {
-            if (this._enablePerspectiveCorrectTextureMapping) {
-                this.texturizePerspectiveCorrect(clippedTris.sort(this.sortTriangles), mesh.material.color, mesh.material.texture);
-            } else {
-                this.texturizeAffine(clippedTris.sort(this.sortTriangles), mesh.material.color, mesh.material.texture);
-            }
+            this.rasterize(clippedTris.sort(this.sortTriangles), mesh.material);
         }
     }
 
@@ -158,26 +153,10 @@ export class Renderer {
         this.clearDepthBuffer();
     }
 
-    private texturizeAffine(trisToRaster: Tri[], color: RGBA, texture: Texture) {
-        this.clearImageData(this._imageData);
-        for (const tri of trisToRaster) {
-            this._rasterizer.textureTriangleAffine(this.canvas, tri, texture, color);
-        }
-        this.swapBuffer();
-    }
-
-    private texturizePerspectiveCorrect(trisToRaster: Tri[], color: RGBA, texture: Texture) {
-        this.clearImageData(this._imageData);
-        for (const tri of trisToRaster) {
-            this._rasterizer.textureTrianglePerspectiveCorrect(this.canvas, tri, texture, color);
-        }
-        this.swapBuffer();
-    }
-
     private rasterize(trisToRaster: Tri[], material: Material) {
         this.clearImageData(this._imageData);
         for (const tri of trisToRaster) {
-            this._rasterizer.rasterizeTriangle(this.canvas, tri, material);
+            this._rasterizer.rasterizeTriangle(this.canvas, tri, material, this._enableDrawMesh, this._enableTextureMapping);
         }
         this.swapBuffer();
     }
@@ -185,7 +164,7 @@ export class Renderer {
     private rasterizeViaCanvasApi(trisToRaster: Tri[], material: Material) {
         this.clearScreen();
         for (const tri of trisToRaster) {
-            this._rasterizer.rasterizeTriangleViaCanvasApi(this.canvas, tri, material);
+            this._rasterizer.rasterizeTriangleViaCanvasApi(this.canvas, tri, material, this._enableDrawMesh);
         }
     }
 
@@ -202,7 +181,7 @@ export class Renderer {
         this._depthBuffer.fill(0);
     }
 
-    public get canvas(): HTMLCanvasElement | OffscreenCanvas{
+    public get canvas(): HTMLCanvasElement | OffscreenCanvas {
         return this._canvas;
     }
     public set canvas(value: HTMLCanvasElement | OffscreenCanvas) {
@@ -237,5 +216,17 @@ export class Renderer {
     }
     public set enableRasterizationViaCanvasApi(value: boolean) {
         this._enableRasterizationViaCanvasApi = value;
+    }
+    public get enableTextureMapping(): boolean {
+        return this._enableTextureMapping;
+    }
+    public set enableTextureMapping(value: boolean) {
+        this._enableTextureMapping = value;
+    }
+    public get enableDrawMesh(): boolean {
+        return this._enableDrawMesh;
+    }
+    public set enableDrawMesh(value: boolean) {
+        this._enableDrawMesh = value;
     }
 }
