@@ -8,7 +8,7 @@ export class TransformControls {
 
     private _model: Model;
     private _cam: Camera;
-    private _canvas: HTMLCanvasElement | OffscreenCanvas;
+    private _canvas: HTMLCanvasElement;
 
     private isDragging = false;
     private rotationSpeed = 0.01;
@@ -18,7 +18,7 @@ export class TransformControls {
     private deltaRotationY = 0;
     private dampingFactor = 0.2; // Adjust damping factor for smoother rotation
 
-    constructor(model: Model, cam: Camera, canvas: HTMLCanvasElement | OffscreenCanvas) {
+    constructor(model: Model, cam: Camera, canvas: HTMLCanvasElement) {
         this._model = model;
         this._cam = cam;
         this._canvas = canvas;
@@ -26,17 +26,17 @@ export class TransformControls {
     }
 
     public enableControls() {
-        this.canvas.addEventListener('mousedown', this.handleMouseDown as EventListener);
-        this.canvas.addEventListener('mouseup', this.handleMouseUp as EventListener);
-        this.canvas.addEventListener('mousemove', this.handleMouseMove as EventListener);
-        this.canvas.addEventListener('wheel', this.handleMouseWheel as EventListener);
+        this.canvas.addEventListener('mousedown', this.handleMouseDown);
+        this.canvas.addEventListener('mouseup', this.handleMouseUp);
+        this.canvas.addEventListener('mousemove', this.handleMouseMove);
+        this.canvas.addEventListener('wheel', this.handleMouseWheel);
     }
 
     public disableControls() {
-        this.canvas.removeEventListener('mousedown', this.handleMouseDown as EventListener);
-        this.canvas.removeEventListener('mouseup', this.handleMouseUp as EventListener);
-        this.canvas.removeEventListener('mousemove', this.handleMouseMove as EventListener);
-        this.canvas.removeEventListener('wheel', this.handleMouseWheel as EventListener);
+        this.canvas.removeEventListener('mousedown', this.handleMouseDown);
+        this.canvas.removeEventListener('mouseup', this.handleMouseUp);
+        this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+        this.canvas.removeEventListener('wheel', this.handleMouseWheel);
     }
 
     private handleMouseDown = (event: MouseEvent): void => {
@@ -108,10 +108,10 @@ export class TransformControls {
     public set model(value: Model) {
         this._model = value;
     }
-    public get canvas(): HTMLCanvasElement | OffscreenCanvas {
+    public get canvas(): HTMLCanvasElement {
         return this._canvas;
     }
-    public set canvas(value: HTMLCanvasElement | OffscreenCanvas) {
+    public set canvas(value: HTMLCanvasElement) {
         this._canvas = value;
     }
 }
