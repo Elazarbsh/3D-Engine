@@ -25,8 +25,6 @@ export class Renderer {
     private _enablePerspectiveCorrectTextureMapping: boolean = false;
     private _enableRasterizationViaCanvasApi: boolean = true;
     private _enableTextureMapping: boolean = false;
-    private _enableDrawMesh: boolean = false;
-
 
     constructor(canvas: HTMLCanvasElement | OffscreenCanvas) {
         this._screenWidth = canvas.width;
@@ -156,7 +154,7 @@ export class Renderer {
     private rasterize(trisToRaster: Tri[], material: Material) {
         this.clearImageData(this._imageData);
         for (const tri of trisToRaster) {
-            this._rasterizer.rasterizeTriangle(this.canvas, tri, material, this._enableDrawMesh, this._enableTextureMapping);
+            this._rasterizer.rasterizeTriangle(this.canvas, tri, material, this._enableTextureMapping);
         }
         this.swapBuffer();
     }
@@ -164,7 +162,7 @@ export class Renderer {
     private rasterizeViaCanvasApi(trisToRaster: Tri[], material: Material) {
         this.clearScreen();
         for (const tri of trisToRaster) {
-            this._rasterizer.rasterizeTriangleViaCanvasApi(this.canvas, tri, material, this._enableDrawMesh);
+            this._rasterizer.rasterizeTriangleViaCanvasApi(this.canvas, tri, material);
         }
     }
 
@@ -222,11 +220,5 @@ export class Renderer {
     }
     public set enableTextureMapping(value: boolean) {
         this._enableTextureMapping = value;
-    }
-    public get enableDrawMesh(): boolean {
-        return this._enableDrawMesh;
-    }
-    public set enableDrawMesh(value: boolean) {
-        this._enableDrawMesh = value;
     }
 }

@@ -14,7 +14,7 @@ export class TriangleRasterizer {
         this._depthBuffer = depthBuffer;
     }
 
-    public rasterizeTriangleViaCanvasApi(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material, drawMeshEnabled: boolean) {
+    public rasterizeTriangleViaCanvasApi(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material) {
         const ctx = canvas.getContext("2d");
 
         if (ctx === null)
@@ -60,13 +60,13 @@ export class TriangleRasterizer {
         if (material.wireframe) {
             ctx.stroke();
         }
-        if(drawMeshEnabled){
+        if(material.mesh){
             ctx.fill();
         }
     }
 
-    public rasterizeTriangle(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material, drawMeshEnabled: boolean, textureMappingEnabled: boolean) {
-        if (drawMeshEnabled) {
+    public rasterizeTriangle(canvas: HTMLCanvasElement | OffscreenCanvas, tri: Tri, material: Material, textureMappingEnabled: boolean) {
+        if (material.mesh) {
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
 

@@ -4,12 +4,14 @@ import { Texture } from "./texture.js";
 export class Material {
     private _texture: Texture | null;
     private _color: RGBA;
+    private _mesh: boolean;
     private _wireframe: boolean;
     private _wireframeWidth: number;
     private _wireframeColor: RGBA;
 
     constructor(
         color: RGBA = new RGBA(),
+        mesh: boolean = true,
         wireframe: boolean = false,
         wireframeWidth: number = 1,
         texture: Texture | null = null,
@@ -19,6 +21,7 @@ export class Material {
         this._wireframeWidth = wireframeWidth;
         this._texture = texture;
         this._wireframeColor = wireframeColor;
+        this._mesh = mesh;
     }
 
     public get texture(): Texture | null {
@@ -50,5 +53,11 @@ export class Material {
     }
     public set wireframeColor(value: RGBA) {
         this._wireframeColor = value;
+    }
+    public get mesh(): boolean {
+        return this._mesh;
+    }
+    public set mesh(value: boolean) {
+        this._mesh = value;
     }
 }
