@@ -24,7 +24,7 @@ export class Renderer {
     private _enableNonCameraFacingTrisRendering: boolean = false;
     private _enablePerspectiveCorrectTextureMapping: boolean = false;
     private _enableRasterizationViaCanvasApi: boolean = true;
-    private _enableTextureMapping: boolean = false;
+    private _enableTextureMapping: boolean = true;
 
     constructor(canvas: HTMLCanvasElement | OffscreenCanvas) {
         this._screenWidth = canvas.width;
